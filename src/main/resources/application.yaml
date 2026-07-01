@@ -1,0 +1,6 @@
+spring.application.name: semantic-search-engine
+
+ml:
+  model:
+    embedding:
+      path: classpath:models/embedding_model.onnx
