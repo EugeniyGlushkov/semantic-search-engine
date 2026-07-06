@@ -1,10 +1,15 @@
 package ru.alvisid.semanticsearchengine.service;
 
+import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.alvisid.semanticsearchengine.dto.Tokens;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author EGlushkov
@@ -19,27 +24,42 @@ public class EmbeddingService {
 
     private final OrtSession ortSession;
     private final OrtEnvironment ortEnvironment;
+    private final TokenizerService tokenizerService;
 
     // Метод для генерации эмбеддинга из текста
     public float[] generateEmbedding(String text) {
         try {
-            log.debug("Генерация эмбеддинга для текста: {}", text);
+            log.info("Генерация эмбеддинга для текста: {}", text);
 
-            // TODO: Здесь нужна токенизация!
-            // Пока мы не реализовали токенизацию в Java, мы не можем подать текст напрямую.
-            // Временно заглушка: возвращаем заглушку, чтобы проверить, что модель загружается.
-            // На следующем шаге мы добавим токенизацию.
+            // 1. Токенизация
+            Tokens tokens = tokenizerService.tokenize(text);
+            long[] inputIds = tokens.inputIds();
+            long[] attentionMask = tokens.attentionMask();
 
-            log.warn("Токенизация ещё не реализована! Возвращаем заглушку.");
-            return new float[384]; // Заглушка
+            // 2. Создаем тензоры для ONNX Runtime
+            // Форма: [batch_size, sequence_length] = [1, length]
+            long[][] inputIdsBatch = {inputIds};
+            long[][] attentionMaskBatch = {attentionMask};
 
-            /*
-            // В реальности, когда добавим токенизацию, здесь будет:
-            // 1. Токенизация текста → input_ids, attention_mask
-            // 2. Создание OnnxTensor из токенов
-            // 3. Запуск инференса
-            // 4. Получение вектора
-            */
+            OnnxTensor inputIdsTensor = OnnxTensor.createTensor(ortEnvironment, inputIdsBatch);
+            OnnxTensor attentionMaskTensor = OnnxTensor.createTensor(ortEnvironment, attentionMaskBatch);
+
+            Map<String, OnnxTensor> inputs = new HashMap<>();
+            inputs.put("input_ids", inputIdsTensor);
+            inputs.put("attention_mask", attentionMaskTensor);
+
+            // 3. Запускаем инференс
+            try (OrtSession.Result results = ortSession.run(inputs)) {
+                // Результат — тензор с эмбеддингами
+                OnnxTensor outputTensor = (OnnxTensor) results.get("embeddings").get();
+                float[][][] outputArray = (float[][][]) outputTensor.getValue();
+
+                // Извлекаем эмбеддинг первого (и единственного) текста в батче
+                float[] embedding = outputArray[0][0]; // [batch][sequence][features]
+
+                log.info("Эмбеддинг сгенерирован. Размерность: {}", embedding.length);
+                return embedding;
+            }
 
         } catch (Exception e) {
             log.error("Ошибка при генерации эмбеддинга для текста: {}", text, e);

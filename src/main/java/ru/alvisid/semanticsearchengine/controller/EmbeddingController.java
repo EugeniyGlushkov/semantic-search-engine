@@ -29,8 +29,6 @@ public class EmbeddingController {
         log.info("Получен запрос на генерацию эмбеддинга для текста: {}", request.getText());
 
         float[] embedding = embeddingService.generateEmbedding(request.getText());
-
-        log.info("Эмбеддинг сгенерирован. Размерность: {}", embedding.length);
         return new EmbeddingResponse(embedding);
     }
 }

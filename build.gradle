@@ -23,6 +23,8 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'com.microsoft.onnxruntime:onnxruntime:1.19.2'
+    // Tokenizers for Java (порт HuggingFace Tokenizers)
+    implementation 'ai.djl.huggingface:tokenizers:0.28.0'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     runtimeOnly 'org.postgresql:postgresql'
