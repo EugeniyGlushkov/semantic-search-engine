@@ -7,7 +7,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.alvisid.semanticsearchengine.dto.Tokens;
+import ru.alvisid.semanticsearchengine.model.EmbeddingEntity;
+import ru.alvisid.semanticsearchengine.repository.EmbeddingRepository;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,21 +28,36 @@ public class EmbeddingService {
     private final OrtSession ortSession;
     private final OrtEnvironment ortEnvironment;
     private final TokenizerService tokenizerService;
+    private final EmbeddingRepository embeddingRepository;
 
-    // Метод для генерации эмбеддинга из текста
-    public float[] generateEmbedding(String text) {
+    // Метод для генерации и сохранения эмбеддинга
+    public float[] generateAndSaveEmbedding(String text) {
+        log.info("Генерация и сохранение эмбеддинга для текста: {}", text);
+
+        // 1. Генерируем эмбеддинг
+        float[] embedding = getEmbedding(text);
+
+        // 2. Преобразуем float[] в строку формата PostgreSQL
+        String vectorString = Arrays.toString(embedding);
+
+        // 3. Сохраняем в БД
+        EmbeddingEntity entity = EmbeddingEntity.builder()
+                .text(text)
+                .embedding(vectorString)
+                .build();
+        embeddingRepository.save(entity);
+
+        log.info("Эмбеддинг сохранен. ID записи: {}", entity.getId());
+        return embedding;
+    }
+
+    public float[] getEmbedding(String text) {
         try {
-            log.info("Генерация эмбеддинга для текста: {}", text);
-
-            // 1. Токенизация
+            // 1. Генерируем токены
             Tokens tokens = tokenizerService.tokenize(text);
-            long[] inputIds = tokens.inputIds();
-            long[] attentionMask = tokens.attentionMask();
-
-            // 2. Создаем тензоры для ONNX Runtime
-            // Форма: [batch_size, sequence_length] = [1, length]
-            long[][] inputIdsBatch = {inputIds};
-            long[][] attentionMaskBatch = {attentionMask};
+            // Создаем тензоры из токенов
+            long[][] inputIdsBatch = {tokens.inputIds()};
+            long[][] attentionMaskBatch = {tokens.attentionMask()};
 
             OnnxTensor inputIdsTensor = OnnxTensor.createTensor(ortEnvironment, inputIdsBatch);
             OnnxTensor attentionMaskTensor = OnnxTensor.createTensor(ortEnvironment, attentionMaskBatch);
@@ -48,22 +66,15 @@ public class EmbeddingService {
             inputs.put("input_ids", inputIdsTensor);
             inputs.put("attention_mask", attentionMaskTensor);
 
-            // 3. Запускаем инференс
+            // Запускаем инференс
             try (OrtSession.Result results = ortSession.run(inputs)) {
-                // Результат — тензор с эмбеддингами
                 OnnxTensor outputTensor = (OnnxTensor) results.get("embeddings").get();
                 float[][][] outputArray = (float[][][]) outputTensor.getValue();
-
-                // Извлекаем эмбеддинг первого (и единственного) текста в батче
-                float[] embedding = outputArray[0][0]; // [batch][sequence][features]
-
-                log.info("Эмбеддинг сгенерирован. Размерность: {}", embedding.length);
-                return embedding;
+                return outputArray[0][0]; // Возвращаем эмбеддинг
             }
-
         } catch (Exception e) {
-            log.error("Ошибка при генерации эмбеддинга для текста: {}", text, e);
-            throw new RuntimeException("Ошибка генерации эмбеддинга", e);
+            log.error("Ошибка при выполнении инференса", e);
+            throw new RuntimeException("Ошибка инференса", e);
         }
     }
 }
