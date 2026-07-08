@@ -7,6 +7,9 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    show-sql: true
+  liquibase:
+    enabled: false  # Отключаем Liquibase для тестов
 
 ml:
   model:

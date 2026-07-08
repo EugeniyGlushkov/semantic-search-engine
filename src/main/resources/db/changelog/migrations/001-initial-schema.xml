@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.8.xsd">
+
+    <changeSet id="1" author="eugeniy">
+        <sql language="SQL">
+            <![CDATA[
+            -- Включаем расширение pgvector
+            CREATE EXTENSION IF NOT EXISTS vector;
+
+            -- Создаём таблицу для хранения текстов и эмбеддингов
+            CREATE TABLE IF NOT EXISTS embeddings (
+                id BIGSERIAL PRIMARY KEY,
+                text TEXT NOT NULL,
+                embedding VECTOR(384),
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+
+            -- Создаём индекс для быстрого поиска по косинусному расстоянию
+            CREATE INDEX IF NOT EXISTS embeddings_embedding_cos_idx
+                ON embeddings
+                USING ivfflat (embedding vector_cosine_ops);
+            ]]>
+        </sql>
+    </changeSet>
+
+</databaseChangeLog>
