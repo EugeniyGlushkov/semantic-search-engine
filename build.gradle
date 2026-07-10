@@ -25,6 +25,7 @@ dependencies {
     implementation "org.springframework.boot:spring-boot-starter-liquibase"
     implementation 'com.microsoft.onnxruntime:onnxruntime:1.19.2'
     // Tokenizers for Java (порт HuggingFace Tokenizers)
+    implementation 'ai.djl:api:0.28.0'
     implementation 'ai.djl.huggingface:tokenizers:0.28.0'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
@@ -33,6 +34,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-thymeleaf-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'com.h2database:h2:2.3.232'
+    testImplementation 'org.mockito:mockito-core:5.3.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testCompileOnly 'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
@@ -40,4 +42,13 @@ dependencies {
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// отключаем создание тонкого jar-ника
+jar {
+    enabled = false
+}
+
+bootJar {
+    exclude('**/models/**')
 }

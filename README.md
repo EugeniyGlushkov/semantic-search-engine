@@ -24,6 +24,7 @@
 ### Run locally
 ```bash
 ./gradlew bootRun
+```
 
 📌 Endpoints
 Method	Endpoint	Description
@@ -32,3 +33,24 @@ POST	/api/search	Accepts text, finds top 5 similar texts
 GET	/	UI for testing
 📄 License
 MIT
+
+### Сборка контейнера
+docker build -t semantic-search:latest .
+
+### Запуск контейнера
+docker run -p 8080:8080 --name semantic-search -e SPRING_PROFILES_ACTIVE=docker semantic-search:latest
+docker start semantic-search 
+старт контейнера с привязкой к потоку вывода
+docker start -a semantic-search
+
+### Остановка контейнера
+docker stop semantic-search
+
+посмотреть все контейнеры, включая остановленные (-a)
+docker ps -a
+посмотреть образы
+docker images
+Удалить остановленный контейнер
+docker rm semantic-search
+Удалить образ по имени/тегу:
+docker rmi <имя_образа>

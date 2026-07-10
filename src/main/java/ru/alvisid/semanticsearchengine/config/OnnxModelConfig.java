@@ -5,11 +5,10 @@ import ai.onnxruntime.OrtSession;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
-
-import java.io.File;
 
 /**
  * @author EGlushkov
@@ -33,14 +32,17 @@ public class OnnxModelConfig {
     }
 
     @Bean
-    public OrtSession ortSession() throws Exception {
-        log.info("Загрузка модели из: {}", modelResource.getURI());
+    @ConditionalOnProperty(name = "ml.model.enabled", havingValue = "true", matchIfMissing = true)
+    public OrtSession ortSession(OrtEnvironment env) throws Exception {
+        log.info("Загрузка модели...");
 
-        // Получаем файл из ресурсов
-        File modelFile = modelResource.getFile();
+        // Получаем путь к модели как строку
+        String modelPath = modelResource.getFile().getAbsolutePath();
+        log.info("Путь к модели: {}", modelPath);
 
-        // Создаем сессию, передавая путь к файлу
-        OrtSession session = ortEnvironment().createSession(modelFile.getAbsolutePath(), new OrtSession.SessionOptions());
+        // Создаем сессию через путь к файлу
+        OrtSession.SessionOptions options = new OrtSession.SessionOptions();
+        OrtSession session = env.createSession(modelPath, options);
 
         log.info("✅ Модель успешно загружена");
         return session;

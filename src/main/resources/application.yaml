@@ -24,6 +24,9 @@ spring:
 
 ml:
   model:
+    enabled: true
+    tokenizer:
+      path: classpath:models/tokenizer.json
     embedding:
       path: classpath:models/embedding_model.onnx
 

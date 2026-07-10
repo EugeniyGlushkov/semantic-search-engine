@@ -12,6 +12,11 @@ spring:
     enabled: false  # Отключаем Liquibase для тестов
 
 ml:
+  tokenizer:
+    enabled: false
   model:
+    enabled: false
+    tokenizer:
+      path: classpath:models/tokenizer.json
     embedding:
       path: classpath:models/embedding_model.onnx

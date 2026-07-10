@@ -1,0 +1,7 @@
+ml:
+  model:
+    enabled: true
+    tokenizer:
+      path: file:/app/models/tokenizer.json
+    embedding:
+      path: file:/app/models/embedding_model.onnx
