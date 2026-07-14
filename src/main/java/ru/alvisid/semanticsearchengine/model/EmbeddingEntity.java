@@ -10,7 +10,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Array;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -35,8 +38,10 @@ public class EmbeddingEntity {
     @Column(columnDefinition = "TEXT")
     private String text;
 
-    @Column(columnDefinition = "vector(384)")  // Указываем тип pgvector
-    private String embedding;
+    @Column
+    @JdbcTypeCode(SqlTypes.VECTOR)
+    @Array(length = 384)
+    private float[] embedding;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

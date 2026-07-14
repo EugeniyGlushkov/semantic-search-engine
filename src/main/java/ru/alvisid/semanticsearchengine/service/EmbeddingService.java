@@ -10,7 +10,6 @@ import ru.alvisid.semanticsearchengine.dto.Tokens;
 import ru.alvisid.semanticsearchengine.model.EmbeddingEntity;
 import ru.alvisid.semanticsearchengine.repository.EmbeddingRepository;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,13 +36,10 @@ public class EmbeddingService {
         // 1. Генерируем эмбеддинг
         float[] embedding = getEmbedding(text);
 
-        // 2. Преобразуем float[] в строку формата PostgreSQL
-        String vectorString = Arrays.toString(embedding);
-
         // 3. Сохраняем в БД
         EmbeddingEntity entity = EmbeddingEntity.builder()
                 .text(text)
-                .embedding(vectorString)
+                .embedding(embedding)
                 .build();
         embeddingRepository.save(entity);
 

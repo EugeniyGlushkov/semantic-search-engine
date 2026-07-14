@@ -30,6 +30,15 @@ ml:
     embedding:
       path: classpath:models/embedding_model.onnx
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info,health
+  info:
+    env:
+      enabled: true
+
 logging:
   level:
     com.example.inference: DEBUG

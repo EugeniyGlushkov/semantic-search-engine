@@ -1,0 +1,60 @@
+# ===============================================
+# 1. Deployment — управляет подами с приложением
+# ===============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: semantic-search
+  labels:
+    app: semantic-search
+spec:
+  replicas: 2                       # Две реплики для отказоустойчивости
+  selector:
+    matchLabels:
+      app: semantic-search
+  template:
+    metadata:
+      labels:
+        app: semantic-search
+    spec:
+      containers:
+        - name: app
+          image: ubuntu-registry.local/semantic-search:latest   # Образ из твоего Registry
+          imagePullPolicy: Always    # Всегда тянуть свежий образ (для разработки)
+          ports:
+            - containerPort: 8080
+          env:                       # Переменные окружения для Spring Boot
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres-service:5432/ml_platform
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: postgres
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker             # Активируем профиль для работы с file:/app/models/
+            #- name: SPRING_LIQUIBASE_ENABLED # временно отрубаем liquibase
+            #  value: "false"
+          resources:                 # (Опционально) ограничения ресурсов
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+---
+# ===============================================
+# 2. Service — доступ к приложению изнутри и снаружи
+# ===============================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: semantic-search-service
+spec:
+  selector:
+    app: semantic-search
+  ports:
+    - protocol: TCP
+      port: 8080                   # Порт внутри кластера
+      targetPort: 8080             # Порт в контейнере
+      nodePort: 30080              # Порт на хосте (диапазон 30000-32767)
+  type: NodePort                   # Доступно снаружи через порт ноды

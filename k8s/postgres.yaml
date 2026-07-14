@@ -1,0 +1,66 @@
+# ===============================================
+# 1. StatefulSet — контроллер для управления PostgreSQL
+# ===============================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres               # Имя StatefulSet. Будет использоваться для именования подов.
+spec:
+  serviceName: postgres-service # Имя Service, которое обеспечивает стабильную сетевую идентичность.
+  # Это обязательно для StatefulSet, чтобы поды имели предсказуемые DNS-имена.
+  replicas: 1                  # Количество реплик. Для PostgreSQL достаточно 1 для демонстрации.
+  # При увеличении числа каждая реплика получит свой PVC.
+  selector:
+    matchLabels:
+      app: postgres            # StatefulSet управляет подами с этой меткой.
+  template:                    # Шаблон пода — описание того, как будет выглядеть каждый под.
+    metadata:
+      labels:
+        app: postgres          # Метка, по которой Service находит этот под.
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg16     # Образ PostgreSQL с установленным pgvector.
+          env:                   # Переменные окружения для инициализации базы данных.
+            - name: POSTGRES_USER
+              value: postgres      # Имя пользователя-администратора.
+            - name: POSTGRES_PASSWORD
+              value: postgres      # Пароль (ВНИМАНИЕ: для продакшена используйте Secret!).
+            - name: POSTGRES_DB
+              value: ml_platform   # Имя базы данных, которая будет создана при первом запуске.
+          ports:
+            - containerPort: 5432  # Порт, который слушает PostgreSQL внутри контейнера.
+          volumeMounts:
+            - name: postgres-storage
+              mountPath: /var/lib/postgresql/data  # Папка в контейнере, где PostgreSQL хранит данные.
+              # Она будет примонтирована к постоянному тому.
+  # ===============================================
+  # 2. volumeClaimTemplates — автоматическое создание PVC для каждого пода
+  # ===============================================
+  volumeClaimTemplates:        # Это шаблон, который создаёт отдельный PVC для каждого пода.
+    - metadata:
+        name: postgres-storage   # Имя тома, на которое ссылается volumeMounts выше.
+        # Для пода postgres-0 будет создан PVC с именем postgres-storage-postgres-0.
+      spec:
+        accessModes: ["ReadWriteOnce"]  # Только одна нода может писать в том.
+        resources:
+          requests:
+            storage: 1Gi         # Запрашиваем 1 гигабайт дискового пространства.
+            # Minikube сам создаст PersistentVolume под этот PVC.
+---
+# ===============================================
+# 3. Service — постоянная точка доступа к PostgreSQL внутри кластера
+# ===============================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service       # Имя сервиса. Другие поды будут обращаться к нему по этому имени.
+spec:
+  selector:
+    app: postgres              # Сервис направляет трафик на поды с меткой app: postgres.
+  ports:
+    - protocol: TCP
+      port: 5432               # Порт, по которому сервис доступен внутри кластера.
+      targetPort: 5432         # Порт в контейнере (совпадает с containerPort).
+  # Тип ClusterIP (по умолчанию) — сервис доступен только внутри кластера.
+  # Это идеально для связи между микросервисами.

@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.alvisid.semanticsearchengine.dto.SearchRequest;
+import ru.alvisid.semanticsearchengine.dto.SearchResponse;
 import ru.alvisid.semanticsearchengine.model.EmbeddingEntity;
 import ru.alvisid.semanticsearchengine.service.SearchService;
 
@@ -27,9 +28,12 @@ public class SearchController {
     private final SearchService searchService;
 
     @PostMapping
-    public List<EmbeddingEntity> search(@RequestBody SearchRequest request) {
+    public SearchResponse search(@RequestBody SearchRequest request) {
         String query = request.getQuery();
         log.info("Поиск по запросу: {}", query);
-        return searchService.search(query);
+        List<String> texts = searchService.search(query).stream()
+                .map(EmbeddingEntity::getText)
+                .toList();
+        return new SearchResponse(texts);
     }
 }
