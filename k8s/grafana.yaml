@@ -1,0 +1,51 @@
+# ===============================================
+# 1. Deployment — запуск Grafana
+# ===============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana                    # Имя Deployment
+  labels:
+    app: grafana                   # Лейбл для идентификации приложения
+spec:
+  replicas: 1                      # Одна реплика Grafana (для демонстрации)
+  selector:
+    matchLabels:
+      app: grafana                 # Deployment управляет подами с этим лейблом
+  template:
+    metadata:
+      labels:
+        app: grafana               # Лейбл пода (должен совпадать с selector)
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest  # Официальный образ Grafana
+          ports:
+            - containerPort: 3000          # Стандартный порт Grafana
+          # Можно добавить переменные окружения, например, для смены пароля:
+          # env:
+          # - name: GF_SECURITY_ADMIN_PASSWORD
+          #   value: admin
+          # volumeMounts:              # Если нужно сохранять дашборды/настройки
+          # - name: grafana-storage
+          #   mountPath: /var/lib/grafana
+      # volumes:
+      # - name: grafana-storage
+      #   persistentVolumeClaim: ...
+---
+# ===============================================
+# 2. Service — доступ к Grafana внутри и снаружи кластера
+# ===============================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana-service            # Имя сервиса (по нему будут обращаться внутри кластера)
+spec:
+  selector:
+    app: grafana                   # Сервис направляет трафик на поды с этим лейблом
+  ports:
+    - protocol: TCP
+      port: 3000                   # Порт, на котором сервис доступен внутри кластера
+      targetPort: 3000             # Порт в контейнере (совпадает с containerPort)
+      nodePort: 30300              # Внешний порт (диапазон 30000-32767)
+  type: NodePort                   # Делает сервис доступным извне кластера

@@ -34,6 +34,7 @@ dependencies {
     implementation 'ai.djl.huggingface:tokenizers:0.28.0'
     // чтобы подружить float[] с vector
     implementation 'org.hibernate.orm:hibernate-vector:6.4.0.Final'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     runtimeOnly 'org.postgresql:postgresql'

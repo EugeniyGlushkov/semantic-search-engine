@@ -54,3 +54,20 @@ docker images
 docker rm semantic-search
 Удалить образ по имени/тегу:
 docker rmi <имя_образа>
+
+### Добавление Connections.Data soursces в Grafana
+Connection URL http://prometheus-service:9090
+### Добавление дашборда
+```text
+Запросы для панелей:
+память JVM jvm_memory_used_bytes{application="semantic-search"}
+CPU system_cpu_usage{application="semantic-search"}
+HTTP queries http_server_requests_seconds_count{application="semantic-search"}
+Errors http_server_requests_seconds_count{application="semantic-search", outcome="CLIENT_ERROR"}
+```
+## !!!!
+🚀 Что можно сделать дальше (по желанию)
+Настроить алерты — чтобы получать уведомления при ошибках или высокой нагрузке.
+Добавить кастомные бизнес-метрики — например, счётчики запросов к /api/embed, время генерации эмбеддинга.
+Подключить Loki для логов — чтобы собирать и анализировать логи вместе с метриками.
+Настроить дашборд под себя — добавить панели с нужными метриками, убрать лишние.

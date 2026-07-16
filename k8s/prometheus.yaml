@@ -1,0 +1,100 @@
+# ===============================================
+# 1. ConfigMap — конфигурация Prometheus
+# ===============================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config               # Имя ConfigMap, которое будет использовано в Deployment
+data:
+  prometheus.yml: |                     # Файл конфигурации Prometheus (ключ в ConfigMap)
+    # Глобальные настройки Prometheus
+    global:
+      scrape_interval: 15s              # Интервал сбора метрик (по умолчанию)
+
+    # Список целей (jobs) для сбора метрик
+    scrape_configs:
+      - job_name: 'semantic-search'     # Имя задания (будет видно в Prometheus)
+
+        # Настройка обнаружения целей через Kubernetes API
+        kubernetes_sd_configs:
+          - role: pod                   # Обнаруживать поды (можно также node, service, endpoint)
+
+        # Правила перезаписи меток (relabel_configs) — позволяют фильтровать и изменять адреса целей
+        relabel_configs:
+          # Оставляем только поды с лейблом app=semantic-search
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep                # keep — оставляем только те цели, которые подходят под regex
+            regex: semantic-search
+
+          # Оставляем только поды, у которых есть аннотация prometheus.io/scrape=true
+          # Это позволяет выборочно включать сбор метрик для подов
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+
+          # Заменяем стандартный путь сбора метрик на путь из аннотации prometheus.io/path
+          # Если аннотация есть, то берём её значение, иначе путь остаётся /metrics
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)                  # Если аннотация не пустая, подставляем её значение
+
+          # Формируем адрес: IP_пода:порт из аннотации prometheus.io/port
+          # Если аннотация с портом есть, используем её, иначе порт по умолчанию
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)   # Разбиваем адрес и порт
+            replacement: $1:$2              # Собираем в формате IP:ПОРТ
+            target_label: __address__
+
+# ===============================================
+# 2. Deployment — сам Prometheus
+# ===============================================
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  labels:
+    app: prometheus
+spec:
+  replicas: 1                            # Одна реплика Prometheus (для демонстрации)
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      serviceAccountName: prometheus
+      containers:
+        - name: prometheus
+          image: prom/prometheus:latest    # Официальный образ Prometheus
+          ports:
+            - containerPort: 9090            # Стандартный порт Prometheus
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus     # Монтируем конфиг в папку /etc/prometheus внутри контейнера
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config        # Используем ConfigMap, созданный выше
+
+# ===============================================
+# 3. Service — доступ к Prometheus изнутри и снаружи кластера
+# ===============================================
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service
+spec:
+  selector:
+    app: prometheus                     # Сервис направляет трафик на поды с этим лейблом
+  ports:
+    - protocol: TCP
+      port: 9090                        # Порт, на котором сервис доступен внутри кластера
+      targetPort: 9090                  # Порт в контейнере
+      nodePort: 30909                   # Внешний порт (диапазон 30000-32767)
+  type: NodePort                        # Делает сервис доступным извне кластера
