@@ -6,12 +6,16 @@ import ai.onnxruntime.OrtSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.alvisid.semanticsearchengine.dto.EmbeddingRequest;
 import ru.alvisid.semanticsearchengine.dto.Tokens;
 import ru.alvisid.semanticsearchengine.model.EmbeddingEntity;
 import ru.alvisid.semanticsearchengine.repository.EmbeddingRepository;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author EGlushkov
@@ -29,6 +33,10 @@ public class EmbeddingService {
     private final TokenizerService tokenizerService;
     private final EmbeddingRepository embeddingRepository;
 
+    public Optional<EmbeddingEntity> getByText(String text) {
+        return embeddingRepository.findByText(text);
+    }
+
     // Метод для генерации и сохранения эмбеддинга
     public float[] generateAndSaveEmbedding(String text) {
         log.info("Генерация и сохранение эмбеддинга для текста: {}", text);
@@ -45,6 +53,24 @@ public class EmbeddingService {
 
         log.info("Эмбеддинг сохранен. ID записи: {}", entity.getId());
         return embedding;
+    }
+
+    // Метод для генерации и сохранения пачки эмбеддингов
+    public void generateAndSaveEmbeddingBatch(List<EmbeddingRequest> requests) {
+        log.info("Генерация и сохранение эмбеддингов для текста, количество: {}", requests.size());
+
+        List<EmbeddingEntity> embeddings = new ArrayList<>();
+
+        for (EmbeddingRequest request : requests) {
+            EmbeddingEntity embedding = EmbeddingEntity.builder()
+                    .text(request.getText())
+                    .embedding(getEmbedding(request.getText()))
+                    .build();
+            embeddings.add(embedding);
+        }
+        embeddingRepository.saveAll(embeddings);
+
+        log.info("Эмбеддинги сохранены.");
     }
 
     public float[] getEmbedding(String text) {
