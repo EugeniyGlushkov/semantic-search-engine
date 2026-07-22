@@ -1,0 +1,30 @@
+description = 'semantic-search-worker'
+
+springBoot {     // для генерации файла build-info.properties внутри JAR.
+    buildInfo()  // Он добавляет в /actuator/info информацию о версии и времени сборки.
+}
+
+dependencies {
+    implementation platform('org.springframework.boot:spring-boot-dependencies:4.1.0')
+    implementation project(':common')
+    implementation libpacks.springBootCommon
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation "org.springframework.boot:spring-boot-starter-liquibase"
+    implementation 'io.micrometer:micrometer-registry-prometheus'
+    implementation libpacks.embedding
+    runtimeOnly 'org.postgresql:postgresql'
+
+    testImplementation libpacks.test
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'com.h2database:h2:2.3.232'
+    testImplementation 'org.mockito:mockito-core:5.3.1'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+bootJar {
+    exclude('**/models/**')
+}

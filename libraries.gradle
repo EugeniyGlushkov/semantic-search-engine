@@ -1,0 +1,19 @@
+ext {
+    libpacks = [
+            springBootCommon : [
+                    'org.springframework.boot:spring-boot-starter',
+                    'org.springframework.boot:spring-boot-starter-actuator',
+            ],
+            embedding : [
+                    // Tokenizers for Java (порт HuggingFace Tokenizers)
+                    'ai.djl:api:0.28.0',
+                    'ai.djl.huggingface:tokenizers:0.28.0',
+                    // чтобы подружить float[] с vector
+                    'org.hibernate.orm:hibernate-vector:6.4.0.Final',
+                    'com.microsoft.onnxruntime:onnxruntime:1.19.2',
+            ],
+            test : [
+                    'org.springframework.boot:spring-boot-starter-test',
+            ]
+    ]
+}

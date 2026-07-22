@@ -1,0 +1,21 @@
+description = 'semantic-search-api'
+
+springBoot {     // для генерации файла build-info.properties внутри JAR.
+    buildInfo()  // Он добавляет в /actuator/info информацию о версии и времени сборки.
+}
+
+dependencies {
+    implementation platform('org.springframework.boot:spring-boot-dependencies:4.1.0')
+    implementation platform('org.springframework.cloud:spring-cloud-dependencies:2025.1.2')
+    implementation project(':common')
+    implementation libpacks.springBootCommon
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
+
+    testImplementation libpacks.test
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.mockito:mockito-core:5.3.1'
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+}

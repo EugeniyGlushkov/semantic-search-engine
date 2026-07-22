@@ -1,0 +1,89 @@
+spring:
+  application:
+    name: semantic-search-worker
+
+  profiles:
+    active: local
+
+  datasource:
+    url: ${db.url:jdbc:postgresql://192.168.1.45:5432/ml_platform?stringtype=unspecified}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+
+  jpa:
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    default-schema: public
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+server:
+  port: 8081
+
+ml:
+  model:
+    enabled: true
+    tokenizer:
+      path: classpath:models/tokenizer.json
+    embedding:
+      path: classpath:models/embedding_model.onnx
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info,health
+  info:
+    env:
+      enabled: true
+
+logging:
+  level:
+    com.example.inference: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+db:
+  url: jdbc:postgresql://postgres-service:5432/ml_platform?stringtype=unspecified
+
+ml:
+  model:
+    enabled: true
+    tokenizer:
+      path: file:/app/models/tokenizer.json
+    embedding:
+      path: file:/app/models/embedding_model.onnx
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus   # Добавляем prometheus для сбора метрик
+  metrics:
+    export:
+      prometheus:
+        enabled: true                    # Включаем экспорт в формат Prometheus
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+  endpoint:
+    prometheus:
+      enabled: true

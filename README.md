@@ -34,8 +34,18 @@ GET	/	UI for testing
 📄 License
 MIT
 
-### Сборка контейнера
+# Сборка контейнера
+### Собрать API
+docker build -t ubuntu-registry.local/semantic-search-api:latest ./api
+
+### Собрать Worker
+docker build -t ubuntu-registry.local/semantic-search-worker:latest ./worker
+
 docker build -t semantic-search:latest .
+
+# Передача в registry
+docker push ubuntu-registry.local/semantic-search-api:latest
+docker push ubuntu-registry.local/semantic-search-worker:latest
 
 ### Запуск контейнера
 docker run -p 8080:8080 --name semantic-search -e SPRING_PROFILES_ACTIVE=docker semantic-search:latest

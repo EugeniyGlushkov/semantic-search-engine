@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: semantic-search-api
+
+  profiles:
+    active: local
+
+urls:
+  worker: http://localhost:8081
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: info,health
+  info:
+    env:
+      enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus   # Добавляем prometheus для сбора метрик
+  metrics:
+    export:
+      prometheus:
+        enabled: true                    # Включаем экспорт в формат Prometheus
+    distribution:
+      percentiles-histogram:
+        "[http.server.requests]": true
+  endpoint:
+    prometheus:
+      enabled: true
+
+urls:
+  worker: http://semantic-search-worker-service:8080

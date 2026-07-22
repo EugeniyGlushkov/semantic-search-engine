@@ -1,0 +1,57 @@
+# ===============================================
+# 1. Deployment — управляет подами с приложением
+# ===============================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: semantic-search-api
+  labels:
+    app: semantic-search-api
+spec:
+  replicas: 2                       # Две реплики для отказоустойчивости
+  selector:
+    matchLabels:
+      app: semantic-search-api
+  template:
+    metadata:
+      labels:
+        app: semantic-search-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/actuator/prometheus"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+        - name: app
+          image: ubuntu-registry.local/semantic-search-api:latest   # Образ из твоего Registry
+          imagePullPolicy: Always    # Всегда тянуть свежий образ (для разработки)
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+
+          resources:                 # (Опционально) ограничения ресурсов
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
+---
+# ===============================================
+# 2. Service — доступ к приложению изнутри и снаружи
+# ===============================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: semantic-search-api-service
+spec:
+  selector:
+    app: semantic-search-api
+  ports:
+    - protocol: TCP
+      port: 8080                   # Порт внутри кластера
+      targetPort: 8080             # Порт в контейнере
+      nodePort: 30080              # Порт на хосте (диапазон 30000-32767)
+  type: NodePort                   # Доступно снаружи через порт ноды

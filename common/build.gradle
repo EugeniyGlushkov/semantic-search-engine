@@ -1,0 +1,16 @@
+plugins {
+    id 'java-library'
+}
+
+description = 'semantic-search-common'
+
+bootJar {
+    enabled = false // Отключаем поиск main() и сборку толстого JAR
+}
+jar {
+    enabled = true  // Включаем сборку обычной библиотеки для DTO
+}
+
+dependencies {
+
+}
