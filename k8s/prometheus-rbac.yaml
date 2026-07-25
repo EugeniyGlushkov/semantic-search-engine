@@ -1,30 +1,46 @@
-# ServiceAccount для Prometheus
+# ===============================================
+# 1. ServiceAccount — учётная запись для Prometheus
+# ===============================================
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: prometheus
-  namespace: default
+  name: prometheus              # Имя учётной записи
+  namespace: default            # В каком namespace она создаётся
+# Эта учётная запись будет использоваться подом Prometheus для аутентификации в Kubernetes API.
 ---
-# ClusterRole с правами на чтение ресурсов
+# ===============================================
+# 2. ClusterRole — набор разрешений (правил)
+# ===============================================
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: prometheus
+  name: prometheus              # Имя роли
 rules:
-  - apiGroups: [""]
-    resources: ["pods", "services", "endpoints"]
-    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]             # "" — это core API группа (поды, сервисы, endpoints)
+    resources:                  # Какие ресурсы можно читать
+      - "pods"                  # Поды (чтобы находить поды с метриками)
+      - "services"              # Сервисы (чтобы находить сервисы)
+      - "endpoints"             # Эндпоинты (чтобы находить эндпоинты)
+    verbs:                      # Какие действия разрешены
+      - "get"                   # Получить конкретный объект
+      - "list"                  # Получить список объектов
+      - "watch"                 # Следить за изменениями
+# Эта роль даёт права на чтение информации о подах, сервисах и эндпоинтах.
 ---
-# Связываем ServiceAccount с ClusterRole
+# ===============================================
+# 3. ClusterRoleBinding — связывает ServiceAccount с ClusterRole
+# ===============================================
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: prometheus
-subjects:
+  name: prometheus              # Имя связки
+subjects:                       # Кого связываем
   - kind: ServiceAccount
-    name: prometheus
-    namespace: default
-roleRef:
+    name: prometheus            # Имя ServiceAccount (из пункта 1)
+    namespace: default          # Namespace, где находится ServiceAccount
+roleRef:                        # С чем связываем
   kind: ClusterRole
-  name: prometheus
+  name: prometheus              # Имя ClusterRole (из пункта 2)
   apiGroup: rbac.authorization.k8s.io
+# Это связывает учётную запись prometheus с ролью prometheus.
+# Теперь под, использующий этот ServiceAccount, может читать поды, сервисы и эндпоинты.

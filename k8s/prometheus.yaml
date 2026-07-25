@@ -4,47 +4,83 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: prometheus-config               # Имя ConfigMap, которое будет использовано в Deployment
+  name: prometheus-config               # Имя ConfigMap, которое будет смонтировано в под
 data:
-  prometheus.yml: |                     # Файл конфигурации Prometheus (ключ в ConfigMap)
-    # Глобальные настройки Prometheus
+  prometheus.yml: |                     # Сам конфигурационный файл Prometheus
+    # Глобальные настройки, применяемые ко всем джобам
     global:
-      scrape_interval: 15s              # Интервал сбора метрик (по умолчанию)
+      scrape_interval: 15s              # Как часто собирать метрики (по умолчанию)
 
-    # Список целей (jobs) для сбора метрик
+    # Список джобов (заданий) — каждый джоб собирает метрики с определённой группы подов
     scrape_configs:
-      - job_name: 'semantic-search'     # Имя задания (будет видно в Prometheus)
 
-        # Настройка обнаружения целей через Kubernetes API
+      # =============================================
+      # Джоб 1: Сбор метрик с API-сервиса
+      # =============================================
+      - job_name: 'semantic-search-api' # Имя джоба. Будет отображаться в Prometheus и Grafana
+
+        # Используем Kubernetes Service Discovery для автоматического поиска подов
         kubernetes_sd_configs:
-          - role: pod                   # Обнаруживать поды (можно также node, service, endpoint)
+          - role: pod                   # Искать поды (можно также node, service, endpoint)
 
         # Правила перезаписи меток (relabel_configs) — позволяют фильтровать и изменять адреса целей
         relabel_configs:
-          # Оставляем только поды с лейблом app=semantic-search
+          # 1. Оставляем только поды с лейблом app=semantic-search-api
           - source_labels: [__meta_kubernetes_pod_label_app]
             action: keep                # keep — оставляем только те цели, которые подходят под regex
-            regex: semantic-search
+            regex: semantic-search-api
 
-          # Оставляем только поды, у которых есть аннотация prometheus.io/scrape=true
+          # 2. Оставляем только поды, у которых есть аннотация prometheus.io/scrape=true
           # Это позволяет выборочно включать сбор метрик для подов
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
             action: keep
             regex: true
 
-          # Заменяем стандартный путь сбора метрик на путь из аннотации prometheus.io/path
+          # 3. Заменяем стандартный путь сбора метрик на путь из аннотации prometheus.io/path
           # Если аннотация есть, то берём её значение, иначе путь остаётся /metrics
           - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
             action: replace
             target_label: __metrics_path__
             regex: (.+)                  # Если аннотация не пустая, подставляем её значение
 
-          # Формируем адрес: IP_пода:порт из аннотации prometheus.io/port
+          # 4. Формируем адрес: IP_пода:порт из аннотации prometheus.io/port
           # Если аннотация с портом есть, используем её, иначе порт по умолчанию
           - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
             action: replace
             regex: ([^:]+)(?::\d+)?;(\d+)   # Разбиваем адрес и порт
             replacement: $1:$2              # Собираем в формате IP:ПОРТ
+            target_label: __address__
+
+      # =============================================
+      # Джоб 2: Сбор метрик с Worker-сервиса
+      # =============================================
+      - job_name: 'semantic-search-worker' # Имя джоба для Worker
+
+        kubernetes_sd_configs:
+          - role: pod
+
+        relabel_configs:
+          # 1. Оставляем только поды с лейблом app=semantic-search-worker
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: semantic-search-worker
+
+          # 2. Проверяем аннотацию prometheus.io/scrape
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+
+          # 3. Путь к метрикам из аннотации
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+
+          # 4. Формируем адрес: IP_пода:порт из аннотации prometheus.io/port
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
             target_label: __address__
 
 # ===============================================
@@ -58,7 +94,7 @@ metadata:
   labels:
     app: prometheus
 spec:
-  replicas: 1                            # Одна реплика Prometheus (для демонстрации)
+  replicas: 1                            # Одна реплика (для демонстрации)
   selector:
     matchLabels:
       app: prometheus
@@ -67,22 +103,22 @@ spec:
       labels:
         app: prometheus
     spec:
-      serviceAccountName: prometheus
+      serviceAccountName: prometheus     # Используем ServiceAccount с правами на чтение подов
       containers:
         - name: prometheus
-          image: prom/prometheus:latest    # Официальный образ Prometheus
+          image: prom/prometheus:latest  # Официальный образ Prometheus
           ports:
-            - containerPort: 9090            # Стандартный порт Prometheus
+            - containerPort: 9090        # Порт, на котором Prometheus слушает внутри контейнера
           volumeMounts:
             - name: config
-              mountPath: /etc/prometheus     # Монтируем конфиг в папку /etc/prometheus внутри контейнера
+              mountPath: /etc/prometheus # Монтируем конфиг в папку /etc/prometheus
       volumes:
         - name: config
           configMap:
-            name: prometheus-config        # Используем ConfigMap, созданный выше
+            name: prometheus-config      # Используем ConfigMap, созданный выше
 
 # ===============================================
-# 3. Service — доступ к Prometheus изнутри и снаружи кластера
+# 3. Service — доступ к Prometheus внутри и снаружи кластера
 # ===============================================
 ---
 apiVersion: v1

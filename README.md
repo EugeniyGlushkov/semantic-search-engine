@@ -65,6 +65,22 @@ docker rm semantic-search
 Удалить образ по имени/тегу:
 docker rmi <имя_образа>
 
+### порядок запуска
+# 1. Базовые ресурсы (от них зависят все поды)
+kubectl apply -f k8s/secrets.yaml             # Секреты (пароли БД)
+kubectl apply -f k8s/prometheus-rbac.yaml     # Права доступа для Prometheus
+
+# 2. База данных и хранилища
+kubectl apply -f k8s/postgres.yaml            # PostgreSQL (StatefulSet + PVC)
+
+# 3. Основные приложения (зависят от БД и секретов)
+kubectl apply -f k8s/semantic-search-api.yaml
+kubectl apply -f k8s/semantic-search-worker.yaml
+
+# 4. Мониторинг (не зависит от приложений, но полезно поднять после)
+kubectl apply -f k8s/prometheus.yaml          # Prometheus (Deployment + Service)
+kubectl apply -f k8s/grafana.yaml             # Grafana (Deployment + Service)
+
 ### Добавление Connections.Data soursces в Grafana
 Connection URL http://prometheus-service:9090
 ### Добавление дашборда

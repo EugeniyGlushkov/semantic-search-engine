@@ -8,7 +8,7 @@ metadata:
   labels:
     app: semantic-search-api
 spec:
-  replicas: 2                       # Две реплики для отказоустойчивости
+  replicas: 1                       # Две реплики для отказоустойчивости
   selector:
     matchLabels:
       app: semantic-search-api
