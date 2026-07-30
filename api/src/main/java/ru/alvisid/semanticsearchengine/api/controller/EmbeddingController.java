@@ -11,8 +11,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.alvisid.semanticsearchengine.api.client.WorkerClient;
 import ru.alvisid.semanticsearchengine.api.dto.EmbeddingResponse;
+import ru.alvisid.semanticsearchengine.api.producer.EmbeddingProducer;
+import ru.alvisid.semanticsearchengine.dto.EmbeddingRequest;
 import ru.alvisid.semanticsearchengine.dto.SearchRequest;
 import ru.alvisid.semanticsearchengine.dto.SearchResponse;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author EGlushkov
@@ -27,6 +33,26 @@ import ru.alvisid.semanticsearchengine.dto.SearchResponse;
 public class EmbeddingController {
 
     private final WorkerClient client;
+    private final EmbeddingProducer producer;
+
+    @PostMapping
+    public ResponseEntity<Void> embed(@RequestBody EmbeddingRequest request) {
+        producer.send(request);
+        return ResponseEntity.accepted().build();
+    }
+
+    @PostMapping("/batch")
+    public ResponseEntity<Map<String, Object>> generateEmbeddingsBatch(@RequestBody List<EmbeddingRequest> requests) {
+        log.info("Получен запрос на пакетную генерацию эмбеддингов для {} текстов", requests.size());
+
+        requests.forEach(producer::send);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "ok");
+        response.put("processed", requests.size());
+
+        return ResponseEntity.accepted().body(response);
+    }
 
     @PostMapping("/get-by-text")
     public ResponseEntity<EmbeddingResponse> getEmbeddingByText(@RequestBody SearchRequest request) {

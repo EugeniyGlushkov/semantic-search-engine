@@ -23,4 +23,7 @@ public interface EmbeddingRepository extends JpaRepository<EmbeddingEntity, Long
 
     @Query(value = "SELECT * FROM embeddings WHERE text = :text LIMIT 1", nativeQuery = true)
     Optional<EmbeddingEntity> findByText(@Param("text") String text);
+
+    @Query(value = "SELECT count(*) FROM embeddings WHERE text = :text LIMIT 1", nativeQuery = true)
+    Integer findOneCountByText(@Param("text") String text);
 }

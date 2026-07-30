@@ -5,6 +5,12 @@ spring:
   profiles:
     active: local
 
+  kafka:
+    bootstrap-servers: ${kafka-bootstrap-servers:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
 urls:
   worker: http://localhost:8081
 
@@ -47,3 +53,5 @@ management:
 
 urls:
   worker: http://semantic-search-worker-service:8080
+
+kafka-bootstrap-servers: kafka:9092

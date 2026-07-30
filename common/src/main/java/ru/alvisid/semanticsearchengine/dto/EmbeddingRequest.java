@@ -1,11 +1,11 @@
-package ru.alvisid.semanticsearchengine.api.dto;
+package ru.alvisid.semanticsearchengine.dto;
 
 import lombok.Data;
 
 /**
  * @author EGlushkov
- * Date: 02.07.2026
- * Time: 22:30
+ * Date: 26.07.2026
+ * Time: 0:41
  */
 
 @Data

@@ -40,6 +40,11 @@ public class EmbeddingService {
     public void generateAndSaveEmbedding(String text) {
         log.info("Генерация и сохранение эмбеддинга для текста: {}", text);
 
+        if (existsByText(text)) {
+            log.info("Эмбеддинг с текстом {} существует. Процесс прерван.", text);
+            return;
+        }
+
         // 1. Генерируем эмбеддинг
         float[] embedding = getEmbedding(text);
 
@@ -87,5 +92,9 @@ public class EmbeddingService {
             log.error("Ошибка при выполнении инференса", e);
             throw new RuntimeException("Ошибка инференса", e);
         }
+    }
+
+    public boolean existsByText(String text) {
+        return embeddingRepository.findOneCountByText(text) > 0;
     }
 }

@@ -25,6 +25,17 @@ spring:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     default-schema: public
 
+  kafka:
+    bootstrap-servers: ${kafka-bootstrap-servers:localhost:9092}
+    consumer:
+      group-id: worker-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.type.mapping: "embeddingRequest:ru.alvisid.semanticsearchengine.dto.EmbeddingRequest"
+
 ---
 spring:
   config:
@@ -87,3 +98,5 @@ management:
   endpoint:
     prometheus:
       enabled: true
+
+kafka-bootstrap-servers: kafka:9092
