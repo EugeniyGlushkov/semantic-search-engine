@@ -99,4 +99,4 @@ management:
     prometheus:
       enabled: true
 
-kafka-bootstrap-servers: kafka:9092
+kafka-bootstrap-servers: kafka-service:9092

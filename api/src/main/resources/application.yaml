@@ -54,4 +54,4 @@ management:
 urls:
   worker: http://semantic-search-worker-service:8080
 
-kafka-bootstrap-servers: kafka:9092
+kafka-bootstrap-servers: kafka-service:9092
