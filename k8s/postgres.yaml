@@ -23,9 +23,15 @@ spec:
           image: pgvector/pgvector:pg16     # Образ PostgreSQL с установленным pgvector.
           env:                   # Переменные окружения для инициализации базы данных.
             - name: POSTGRES_USER
-              value: postgres      # Имя пользователя-администратора.
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: postgres-username      # Имя пользователя-администратора.
             - name: POSTGRES_PASSWORD
-              value: postgres      # Пароль (ВНИМАНИЕ: для продакшена используйте Secret!).
+              valueFrom:
+                secretKeyRef:
+                  name: secrets
+                  key: postgres-password      # Пароль (ВНИМАНИЕ: для продакшена используйте Secret!).
             - name: POSTGRES_DB
               value: ml_platform   # Имя базы данных, которая будет создана при первом запуске.
           ports:
@@ -34,6 +40,13 @@ spec:
             - name: postgres-storage
               mountPath: /var/lib/postgresql/data  # Папка в контейнере, где PostgreSQL хранит данные.
               # Она будет примонтирована к постоянному тому.
+          resources: # (Опционально) ограничения ресурсов
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "500m"
   # ===============================================
   # 2. volumeClaimTemplates — автоматическое создание PVC для каждого пода
   # ===============================================

@@ -44,7 +44,7 @@ spec:
           resources:                 # (Опционально) ограничения ресурсов
             requests:
               memory: "512Mi"
-              cpu: "250m"
+              cpu: "200m"
             limits:
               memory: "1Gi"
               cpu: "500m"

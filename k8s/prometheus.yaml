@@ -112,6 +112,13 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/prometheus # Монтируем конфиг в папку /etc/prometheus
+          resources: # (Опционально) ограничения ресурсов
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "300m"
       volumes:
         - name: config
           configMap:

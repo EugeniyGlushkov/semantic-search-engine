@@ -36,22 +36,25 @@ spring:
         spring.json.trusted.packages: "*"
         spring.json.type.mapping: "embeddingRequest:ru.alvisid.semanticsearchengine.dto.EmbeddingRequest"
 
+ml:
+  model:
+    enabled: true
+    tokenizer:
+      path: ${tokenizer-path}
+    embedding:
+      path: ${embedding-path}
+
 ---
 spring:
   config:
     activate:
       on-profile: local
 
+tokenizer-path: classpath:models/tokenizer.json
+embedding-path: classpath:models/embedding_model.onnx
+
 server:
   port: 8081
-
-ml:
-  model:
-    enabled: true
-    tokenizer:
-      path: classpath:models/tokenizer.json
-    embedding:
-      path: classpath:models/embedding_model.onnx
 
 management:
   endpoints:
@@ -72,16 +75,12 @@ spring:
     activate:
       on-profile: docker
 
+tokenizer-path: file:/app/models/tokenizer.json
+embedding-path: file:/app/models/embedding_model.onnx
+kafka-bootstrap-servers: kafka-service:9092
+
 db:
   url: jdbc:postgresql://postgres-service:5432/ml_platform?stringtype=unspecified
-
-ml:
-  model:
-    enabled: true
-    tokenizer:
-      path: file:/app/models/tokenizer.json
-    embedding:
-      path: file:/app/models/embedding_model.onnx
 
 management:
   endpoints:
@@ -98,5 +97,3 @@ management:
   endpoint:
     prometheus:
       enabled: true
-
-kafka-bootstrap-servers: kafka-service:9092

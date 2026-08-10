@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/migrations/001-initial-schema.xml
   - include:
       file: db/changelog/migrations/002-add-unique-text.xml
+  - include:
+      file: db/changelog/migrations/003-change-embedding-dimension.xml
