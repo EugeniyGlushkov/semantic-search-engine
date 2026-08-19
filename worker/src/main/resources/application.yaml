@@ -43,6 +43,8 @@ ml:
       path: ${tokenizer-path}
     embedding:
       path: ${embedding-path}
+    cross-encoder:
+      path: ${cross-encoder-path}
 
 ---
 spring:
@@ -52,6 +54,7 @@ spring:
 
 tokenizer-path: classpath:models/tokenizer.json
 embedding-path: classpath:models/embedding_model.onnx
+cross-encoder-path: classpath:models/cross_encoder_model.onnx
 
 server:
   port: 8081
@@ -77,6 +80,7 @@ spring:
 
 tokenizer-path: file:/app/models/tokenizer.json
 embedding-path: file:/app/models/embedding_model.onnx
+cross-encoder-path: file:/app/models/cross_encoder_model.onnx
 kafka-bootstrap-servers: kafka-service:9092
 
 db:

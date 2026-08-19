@@ -48,11 +48,20 @@ public class TokenizerService {
      * @return Массив из двух элементов: [input_ids, attention_mask]
      */
     public Tokens tokenize(String text) {
-        log.debug("Токенизация текста: {}", text);
-
         // Токенизируем текст без ограничения длины (или с ограничением через параметры)
+        log.debug("Токенизация текста: {}", text);
         Encoding encoding = tokenizer.encode(text);
+        return getTokens(encoding);
+    }
 
+    public Tokens tokenizePair(String query, String document) {
+        // Токенизируем пару: [CLS] query [SEP] document [SEP]
+        log.debug("Токенизация пары: [CLS] {} [SEP] {} [SEP]", query, document);
+        Encoding encoding = tokenizer.encode(query, document);
+        return getTokens(encoding);
+    }
+
+    private Tokens getTokens(Encoding encoding) {
         // Получаем ID токенов (input_ids)
         long[] inputIds = encoding.getIds();
         // Получаем маску внимания (1 для реальных токенов, 0 для PAD)

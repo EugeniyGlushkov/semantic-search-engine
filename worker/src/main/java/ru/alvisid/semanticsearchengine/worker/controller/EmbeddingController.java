@@ -35,14 +35,4 @@ public class EmbeddingController {
         Optional<EmbeddingEntity> entity = embeddingService.getByText(request.getQuery());
         return entity.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
-
-    @PostMapping("/search")
-    public SearchResponse search(@RequestBody SearchRequest request) {
-        String query = request.getQuery();
-        log.info("Поиск по запросу: {}", query);
-        List<String> texts = embeddingService.search(query).stream()
-                .map(EmbeddingEntity::getText)
-                .toList();
-        return new SearchResponse(texts);
-    }
 }

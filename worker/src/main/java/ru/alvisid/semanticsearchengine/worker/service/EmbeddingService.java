@@ -3,16 +3,14 @@ package ru.alvisid.semanticsearchengine.worker.service;
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtSession;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.alvisid.semanticsearchengine.worker.dto.Tokens;
 import ru.alvisid.semanticsearchengine.worker.model.EmbeddingEntity;
 import ru.alvisid.semanticsearchengine.worker.repository.EmbeddingRepository;
 
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -24,13 +22,22 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class EmbeddingService {
 
     private final OrtSession ortSession;
     private final OrtEnvironment ortEnvironment;
     private final TokenizerService tokenizerService;
     private final EmbeddingRepository embeddingRepository;
+
+    public EmbeddingService(@Qualifier("embeddingSession") OrtSession ortSession,
+                            OrtEnvironment ortEnvironment,
+                            TokenizerService tokenizerService,
+                            EmbeddingRepository embeddingRepository) {
+        this.ortSession = ortSession;
+        this.ortEnvironment = ortEnvironment;
+        this.tokenizerService = tokenizerService;
+        this.embeddingRepository = embeddingRepository;
+    }
 
     public Optional<EmbeddingEntity> getByText(String text) {
         return embeddingRepository.findByText(text);
@@ -56,15 +63,6 @@ public class EmbeddingService {
         embeddingRepository.save(entity);
 
         log.info("Эмбеддинг сохранен. ID записи: {}", entity.getId());
-    }
-
-    public List<EmbeddingEntity> search(String query) {
-        // 1. Генерируем эмбеддинг для запроса (не сохраняем его!)
-        float[] queryEmbedding = getEmbedding(query); // ← только генерация, без сохранения
-        String vectorString = Arrays.toString(queryEmbedding);
-
-        // 2. Ищем в БД (используем репозиторий)
-        return embeddingRepository.findNearestByEmbedding(vectorString, 5);
     }
 
     public float[] getEmbedding(String text) {

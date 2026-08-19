@@ -21,7 +21,9 @@ import org.springframework.core.io.Resource;
 public class OnnxModelConfig {
 
     @Value("${ml.model.embedding.path}")
-    private Resource modelResource;
+    private Resource embeddingModelResource;
+    @Value("${ml.model.cross-encoder.path}")
+    private Resource crossEncoderModelResource;
 
     private OrtEnvironment environment;
 
@@ -31,20 +33,37 @@ public class OnnxModelConfig {
         return OrtEnvironment.getEnvironment();
     }
 
-    @Bean
+    @Bean(name = "embeddingSession")
     @ConditionalOnProperty(name = "ml.model.enabled", havingValue = "true", matchIfMissing = true)
-    public OrtSession ortSession(OrtEnvironment env) throws Exception {
-        log.info("Загрузка модели...");
+    public OrtSession embeddingOrtSession(OrtEnvironment env) throws Exception {
+        log.info("Загрузка embedding модели...");
 
         // Получаем путь к модели как строку
-        String modelPath = modelResource.getFile().getAbsolutePath();
-        log.info("Путь к модели: {}", modelPath);
+        String modelPath = embeddingModelResource.getFile().getAbsolutePath();
+        log.info("Путь к embedding модели: {}", modelPath);
 
         // Создаем сессию через путь к файлу
         OrtSession.SessionOptions options = new OrtSession.SessionOptions();
         OrtSession session = env.createSession(modelPath, options);
 
-        log.info("✅ Модель успешно загружена");
+        log.info("✅ Embedding модель успешно загружена");
+        return session;
+    }
+
+    @Bean(name = "crossEncoderSession")
+    @ConditionalOnProperty(name = "ml.model.enabled", havingValue = "true", matchIfMissing = true)
+    public OrtSession crossEncoderOrtSession(OrtEnvironment env) throws Exception {
+        log.info("Загрузка cross-encoder модели...");
+
+        // Получаем путь к модели как строку
+        String modelPath = crossEncoderModelResource.getFile().getAbsolutePath();
+        log.info("Путь к cross-encoder модели: {}", modelPath);
+
+        // Создаем сессию через путь к файлу
+        OrtSession.SessionOptions options = new OrtSession.SessionOptions();
+        OrtSession session = env.createSession(modelPath, options);
+
+        log.info("✅ Cross-encoder модель успешно загружена");
         return session;
     }
 

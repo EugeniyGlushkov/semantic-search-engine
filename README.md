@@ -37,6 +37,7 @@ MIT
 ### Генерация модели ONNX
 
 Модель `all-mpnet-base-v2` не включена в репозиторий из-за большого размера (~0.5 ГБ). Чтобы сгенерировать её локально:
+Модель `ms-marco-MiniLM-L-6-v2` не включена в репозиторий из-за большого размера (~0.5 ГБ). Чтобы сгенерировать её локально:
 
 1. Убедись, что у тебя есть Python 3.10+ и установлен Miniconda.
 2. Создай и активируй окружение:
@@ -51,12 +52,14 @@ pip install sentence-transformers onnx onnxruntime transformers torch
 Перейди в папку скриптов:
 
 ```bash
-cd scripts/conversion
+D:
+cd cd learn\LLM\dev\semantic-search-engine\scripts\conversion
 ````
 Запусти скрипт конвертации:
 
 ```bash
 python convert_all_mpnet_base_v2.py
+python convert_cross_encoder.py
 ```
 Скопируй полученные файлы embedding_model.onnx и embedding_model.onnx.data в worker/src/main/resources/models/.
 

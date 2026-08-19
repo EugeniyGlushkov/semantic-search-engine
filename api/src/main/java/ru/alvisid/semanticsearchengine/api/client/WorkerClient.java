@@ -12,6 +12,6 @@ public interface WorkerClient {
     @PostMapping("/api/embed/get-by-text")
     EmbeddingResponse getByText(@RequestBody SearchRequest request);
 
-    @PostMapping("/api/embed/search")
+    @PostMapping("/api/search")
     public SearchResponse search(@RequestBody SearchRequest request);
 }
