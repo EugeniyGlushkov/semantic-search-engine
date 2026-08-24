@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "ru.alvisid.semanticsearch.grpc";
+
+package semanticsearch;
+
+// =============================================
+// Сервис для семантического поиска и эмбеддингов
+// =============================================
+service SemanticSearchService {
+  // Поиск текстов по запросу
+  rpc Search (SearchRequest) returns (SearchResponse) {}
+
+  // Поиск эмбеддинга по тексту
+  rpc GetEmbedByText (EmbedRequest) returns (EmbedResponse) {}
+}
+
+// Запрос на поиск
+message SearchRequest {
+  string query = 1;   // Текст запроса
+  int32 topK = 2;     // Количество результатов
+  bool rerank = 3;    // Использовать реранжинг или нет
+}
+
+// Ответ поиска (список текстов)
+message SearchResponse {
+  repeated string texts = 1;
+}
+
+// Запрос на поиск эмбеддинга
+message EmbedRequest {
+  string text = 1;
+}
+
+// Ответ с эмбеддингом
+message EmbedResponse {
+  repeated float embedding = 1;  // массив чисел (вектор)
+}

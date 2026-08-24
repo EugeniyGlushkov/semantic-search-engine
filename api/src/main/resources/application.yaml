@@ -11,6 +11,12 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
+grpc:
+  client:
+    semantic-search-service:
+      address: ${grpc-client-semantic-search-address}
+      negotiation-type: plaintext
+
 urls:
   worker: http://localhost:8081
 
@@ -19,6 +25,8 @@ spring:
   config:
     activate:
       on-profile: local
+
+grpc-client-semantic-search-address: static://localhost:9090
 
 management:
   endpoints:
@@ -34,6 +42,8 @@ spring:
   config:
     activate:
       on-profile: docker
+
+grpc-client-semantic-search-address: static://semantic-search-worker-service:9090
 
 management:
   endpoints:

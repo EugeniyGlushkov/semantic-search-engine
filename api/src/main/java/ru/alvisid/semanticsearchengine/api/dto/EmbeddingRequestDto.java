@@ -1,4 +1,4 @@
-package ru.alvisid.semanticsearchengine.dto;
+package ru.alvisid.semanticsearchengine.api.dto;
 
 import lombok.Data;
 
@@ -9,6 +9,6 @@ import lombok.Data;
  */
 
 @Data
-public class EmbeddingRequest {
+public class EmbeddingRequestDto {
     private String text;
 }

@@ -3,7 +3,7 @@ package ru.alvisid.semanticsearchengine.worker.consumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
-import ru.alvisid.semanticsearchengine.dto.EmbeddingRequest;
+import ru.alvisid.semanticsearchengine.worker.dto.EmbeddingRequestDto;
 import ru.alvisid.semanticsearchengine.worker.service.EmbeddingService;
 
 /**
@@ -22,7 +22,7 @@ public class EmbeddingConsumer {
     }
 
     @KafkaListener(topics = "embedding-requests", groupId = "worker-group")
-    public void consume(EmbeddingRequest request) {
+    public void consume(EmbeddingRequestDto request) {
         log.info("Получен запрос на генерацию эмбеддинга: {}", request.getText());
         embeddingService.generateAndSaveEmbedding(request.getText());
     }

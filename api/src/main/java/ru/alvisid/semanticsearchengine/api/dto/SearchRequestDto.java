@@ -1,4 +1,4 @@
-package ru.alvisid.semanticsearchengine.dto;
+package ru.alvisid.semanticsearchengine.api.dto;
 
 import lombok.Data;
 
@@ -9,7 +9,7 @@ import lombok.Data;
  */
 
 @Data
-public class SearchRequest {
+public class SearchRequestDto {
     private String query;
     private int topK;
     private boolean rerank = false;

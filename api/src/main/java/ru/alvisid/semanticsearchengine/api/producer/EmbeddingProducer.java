@@ -1,8 +1,10 @@
 package ru.alvisid.semanticsearchengine.api.producer;
 
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Component;
-import ru.alvisid.semanticsearchengine.dto.EmbeddingRequest;
+import ru.alvisid.semanticsearchengine.api.dto.EmbeddingRequestDto;
 
 /**
  * @author EGlushkov
@@ -12,13 +14,17 @@ import ru.alvisid.semanticsearchengine.dto.EmbeddingRequest;
 
 @Component
 public class EmbeddingProducer {
-    private final KafkaTemplate<String, EmbeddingRequest> kafkaTemplate;
+    private final KafkaTemplate<String, EmbeddingRequestDto> kafkaTemplate;
 
-    public EmbeddingProducer(KafkaTemplate<String, EmbeddingRequest> kafkaTemplate) {
+    public EmbeddingProducer(KafkaTemplate<String, EmbeddingRequestDto> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    public void send(EmbeddingRequest request) {
-        kafkaTemplate.send("embedding-requests", request);
+    public void send(EmbeddingRequestDto request) {
+        kafkaTemplate.send(MessageBuilder
+                .withPayload(request)
+                .setHeader(KafkaHeaders.TOPIC, "embedding-requests")
+                .setHeader("__TypeId__", "embeddingRequestDto")
+                .build());
     }
 }

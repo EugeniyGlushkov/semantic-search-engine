@@ -23,10 +23,11 @@ spec:
     spec:
       containers:
         - name: app
-          image: ubuntu-registry.local/semantic-search-worker:latest   # Образ из твоего Registry
+          image: ubuntu-registry.local/semantic-search-worker:latest   # Образ из Registry
           imagePullPolicy: Always    # Всегда тянуть свежий образ (для разработки)
           ports:
             - containerPort: 8080
+            - containerPort: 9090
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: docker             # Активируем профиль для работы с file:/app/models/
@@ -63,4 +64,9 @@ spec:
     - protocol: TCP
       port: 8080                   # Порт внутри кластера
       targetPort: 8080             # Порт в контейнере
+      name: rest
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
+      name: grpc
   type: ClusterIP                  # Доступен только внутри кластера

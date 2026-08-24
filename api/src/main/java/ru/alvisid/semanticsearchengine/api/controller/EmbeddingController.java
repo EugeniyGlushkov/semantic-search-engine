@@ -1,6 +1,5 @@
 package ru.alvisid.semanticsearchengine.api.controller;
 
-import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -9,12 +8,16 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import ru.alvisid.semanticsearchengine.api.client.WorkerClient;
-import ru.alvisid.semanticsearchengine.api.dto.EmbeddingResponse;
+import ru.alvisid.semanticsearch.grpc.EmbedRequest;
+import ru.alvisid.semanticsearch.grpc.EmbedResponse;
+import ru.alvisid.semanticsearch.grpc.SearchRequest;
+import ru.alvisid.semanticsearch.grpc.SearchResponse;
+import ru.alvisid.semanticsearch.grpc.SemanticSearchServiceGrpc;
+import ru.alvisid.semanticsearchengine.api.dto.EmbeddingRequestDto;
+import ru.alvisid.semanticsearchengine.api.dto.EmbeddingResponseDto;
+import ru.alvisid.semanticsearchengine.api.dto.SearchRequestDto;
+import ru.alvisid.semanticsearchengine.api.dto.SearchResponseDto;
 import ru.alvisid.semanticsearchengine.api.producer.EmbeddingProducer;
-import ru.alvisid.semanticsearchengine.dto.EmbeddingRequest;
-import ru.alvisid.semanticsearchengine.dto.SearchRequest;
-import ru.alvisid.semanticsearchengine.dto.SearchResponse;
 
 import java.util.HashMap;
 import java.util.List;
@@ -32,17 +35,17 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class EmbeddingController {
 
-    private final WorkerClient client;
     private final EmbeddingProducer producer;
+    private final SemanticSearchServiceGrpc.SemanticSearchServiceBlockingStub grpcStub;
 
     @PostMapping
-    public ResponseEntity<Void> embed(@RequestBody EmbeddingRequest request) {
+    public ResponseEntity<Void> embed(@RequestBody EmbeddingRequestDto request) {
         producer.send(request);
         return ResponseEntity.accepted().build();
     }
 
     @PostMapping("/batch")
-    public ResponseEntity<Map<String, Object>> generateEmbeddingsBatch(@RequestBody List<EmbeddingRequest> requests) {
+    public ResponseEntity<Map<String, Object>> generateEmbeddingsBatch(@RequestBody List<EmbeddingRequestDto> requests) {
         log.info("Получен запрос на пакетную генерацию эмбеддингов для {} текстов", requests.size());
 
         requests.forEach(producer::send);
@@ -55,19 +58,34 @@ public class EmbeddingController {
     }
 
     @PostMapping("/get-by-text")
-    public ResponseEntity<EmbeddingResponse> getEmbeddingByText(@RequestBody SearchRequest request) {
-        try {
-            EmbeddingResponse response = client.getByText(request);
-            return ResponseEntity.ok(response);
-        } catch (FeignException.NotFound e) {
+    public ResponseEntity<EmbeddingResponseDto> getEmbeddingByText(@RequestBody EmbeddingRequestDto request) {
+        EmbedRequest grpcRequest = EmbedRequest.newBuilder()
+                .setText(request.getText())
+                .build();
+        EmbedResponse grpcResponse = grpcStub.getEmbedByText(grpcRequest);
+        List<Float> embeddings = grpcResponse.getEmbeddingList();
+
+        if (embeddings.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } else {
+            EmbeddingResponseDto response = EmbeddingResponseDto.builder()
+                    .text(request.getText())
+                    .embedding(embeddings)
+                    .build();
+            return ResponseEntity.ok(response);
         }
     }
 
     @PostMapping("/search")
-    public SearchResponse search(@RequestBody SearchRequest request) {
+    public SearchResponseDto search(@RequestBody SearchRequestDto request) {
         String query = request.getQuery();
         log.info("Поиск по запросу: {}", query);
-        return client.search(request);
+        SearchRequest grpcRequest = SearchRequest.newBuilder()
+                .setQuery(request.getQuery())
+                .setTopK(request.getTopK())
+                .setRerank(request.isRerank())
+                .build();
+        SearchResponse grpcResponse = grpcStub.search(grpcRequest);
+        return new SearchResponseDto(grpcResponse.getTextsList());
     }
 }

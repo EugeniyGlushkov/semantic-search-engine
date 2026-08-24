@@ -1,3 +1,7 @@
+plugins {
+    id 'com.google.protobuf'
+}
+
 description = 'semantic-search-api'
 
 springBoot {     // для генерации файла build-info.properties внутри JAR.
@@ -7,15 +11,41 @@ springBoot {     // для генерации файла build-info.properties �
 dependencies {
     implementation platform('org.springframework.boot:spring-boot-dependencies:4.1.0')
     implementation platform('org.springframework.cloud:spring-cloud-dependencies:2025.1.2')
-    implementation project(':common')
     implementation libpacks.springBootCommon
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE'
+    implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
 
     testImplementation libpacks.test
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.mockito:mockito-core:5.3.1'
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.24.4'
+    }
+    plugins {
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.74.0'
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            grpc {}
+        }
+    }
+}
+
+// Указываем, где искать .proto файлы (они лежат в common)
+sourceSets {
+    main {
+        proto {
+            srcDirs '../common/src/main/proto', 'src/main/proto'
+        }
+    }
 }

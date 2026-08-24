@@ -34,7 +34,7 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
-        spring.json.type.mapping: "embeddingRequest:ru.alvisid.semanticsearchengine.dto.EmbeddingRequest"
+        spring.json.type.mapping: "embeddingRequestDto:ru.alvisid.semanticsearchengine.worker.dto.EmbeddingRequestDto"
 
 ml:
   model:
@@ -58,6 +58,10 @@ cross-encoder-path: classpath:models/cross_encoder_model.onnx
 
 server:
   port: 8081
+
+grpc:
+  server:
+    port: 9090
 
 management:
   endpoints:

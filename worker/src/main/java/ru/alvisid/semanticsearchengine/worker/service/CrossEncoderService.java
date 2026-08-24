@@ -60,7 +60,6 @@ public class CrossEncoderService {
                 OnnxTensor outputTensor = (OnnxTensor) results.get("logits").get();
                 float[][] output = (float[][]) outputTensor.getValue();
 
-                log.info("Размер выходного массива: {}", output[0].length);
                 // Проверяем размерность выходного массива
                 if (output[0].length == 1) {
                     // Если один логит — это и есть релевантность

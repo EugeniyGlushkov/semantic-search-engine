@@ -1,4 +1,4 @@
-package ru.alvisid.semanticsearchengine.dto;
+package ru.alvisid.semanticsearchengine.api.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -13,6 +13,6 @@ import java.util.List;
 
 @Data
 @AllArgsConstructor
-public class SearchResponse {
+public class SearchResponseDto {
     List<String> texts;
 }
