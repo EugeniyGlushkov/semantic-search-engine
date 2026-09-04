@@ -7,9 +7,6 @@ WORKDIR /app
 # Копируем JAR и модель как файлы
 COPY build/libs/*.jar app.jar
 
-# Копируем папку с моделью (со всем содержимым)
-COPY src/main/resources/models/ /app/models/
-
 # Открываем порт, на котором работает приложение
 EXPOSE 8080
 

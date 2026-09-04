@@ -43,8 +43,5 @@ Thumbs.db
 # Application logs
 *.log
 
-# Модели ONNX (большие бинарные файлы)
-**/models/*.onnx
-**/models/*.onnx.data
-**/models/*.bin
-**/models/*.pb
+# Модели (теперь в монтируемом томе)
+**/models

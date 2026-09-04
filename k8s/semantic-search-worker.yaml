@@ -41,6 +41,9 @@ spec:
                 secretKeyRef:
                   name: secrets
                   key: postgres-password
+          volumeMounts:
+            - name: models
+              mountPath: /app/models
 
           resources:                 # (Опционально) ограничения ресурсов
             requests:
@@ -49,6 +52,10 @@ spec:
             limits:
               memory: "1.5Gi"
               cpu: "800m"
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: models-pvc
 ---
 # ===============================================
 # 2. Service — доступ к приложению изнутри и снаружи

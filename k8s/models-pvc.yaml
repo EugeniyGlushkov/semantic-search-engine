@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: models-pvc
+spec:
+  accessModes:
+    - ReadWriteMany   # или ReadWriteOnce, если только один под будет писать
+  resources:
+    requests:
+      storage: 2Gi    # достаточно для двух моделей + токенизатора
