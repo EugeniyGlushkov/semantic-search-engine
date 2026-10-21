@@ -10,6 +10,7 @@ import ru.alvisid.semanticsearch.grpc.EmbedResponse;
 import ru.alvisid.semanticsearch.grpc.SearchRequest;
 import ru.alvisid.semanticsearch.grpc.SearchResponse;
 import ru.alvisid.semanticsearch.grpc.SemanticSearchServiceGrpc;
+import ru.alvisid.semanticsearchengine.worker.drift.DriftStatisticsCollector;
 import ru.alvisid.semanticsearchengine.worker.model.EmbeddingEntity;
 import ru.alvisid.semanticsearchengine.worker.service.EmbeddingService;
 import ru.alvisid.semanticsearchengine.worker.service.SearchService;
@@ -30,11 +31,14 @@ import java.util.stream.Collectors;
 public class GrpcSemanticSearchService extends SemanticSearchServiceGrpc.SemanticSearchServiceImplBase {
     private final SearchService searchService;
     private final EmbeddingService embeddingService;
+    private final DriftStatisticsCollector driftCollector;
 
     @Override
     public void search(SearchRequest request, StreamObserver<SearchResponse> responseObserver) {
         log.info("gRPC поиск: query='{}', topK={}, rerank={}",
                 request.getQuery(), request.getTopK(), request.getRerank());
+
+        driftCollector.record(request.getQuery());
 
         try {
             var results = searchService.search(

@@ -46,6 +46,12 @@ ml:
     cross-encoder:
       path: ${cross-encoder-path}
 
+drift:
+  baseline:
+    length:
+      bins: [10, 20, 50, 100, 1.7976931348623157E308]  # Double.MAX_VALUE
+      proportions: [0.15, 0.30, 0.35, 0.15, 0.05]
+
 ---
 spring:
   config:
