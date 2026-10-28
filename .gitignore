@@ -44,4 +44,5 @@ Thumbs.db
 *.log
 
 # Модели (теперь в монтируемом томе)
-**/models/
+**/models/*.onnx
+**/models/*.onnx.data

@@ -1,128 +1,97 @@
-# semantic-search-engine
+# Semantic Search Engine & ML Inference Architecture
 
-**Spring Boot service for text embeddings and semantic search with ONNX and pgvector**
+Высоконагруженная микросервисная система семантического поиска на базе векторных эмбеддингов с двухэтапным ранжированием (Bi-Encoder + Cross-Encoder Reranking), локальным инференсом ML-моделей через **ONNX Runtime** и инфраструктурой в **Kubernetes**.
 
-## 🧠 What it does
-- Converts text into 384-dimensional vectors (embeddings) using `all-MiniLM-L6-v2` model via ONNX Runtime.
-- Stores embeddings in PostgreSQL with `pgvector` extension.
-- Performs semantic similarity search: finds the most similar texts by cosine distance.
+Система спроектирована на **Java 21** с разделением потоков записи (асинхронная индексация) и чтения (Low-Latency синхронный поиск).
 
-## 🛠️ Tech Stack
-- Java 17 + Spring Boot 3
-- ONNX Runtime for Java
-- PostgreSQL 15 + pgvector
-- Gradle
-- Thymeleaf (UI)
-- Docker / Kubernetes (planned)
+---
 
-## 🚀 Getting Started
-### Prerequisites
-- Java 17
-- PostgreSQL 15 with pgvector
-- Python 3.10 + `sentence-transformers` (for model conversion)
+## Архитектура и Технологический стек
 
-### Run locally
-```bash
-./gradlew bootRun
-```
+Система разделена на независимые слабосвязанные сервисы:
 
-📌 Endpoints
-Method	Endpoint	Description
-POST	/api/embed	Accepts text, generates embedding, stores in DB
-POST	/api/search	Accepts text, finds top 5 similar texts
-GET	/	UI for testing
-📄 License
-MIT
+*   **Java 21 / Spring Boot 3 / Gradle** — основной стек разработки сервисов.
+*   **Semantic-API Service** — легковесный шлюз (Бэкенд), принимающий запросы от клиентов. Он отправляет новые документы на индексацию в шину данных и делает прямые gRPC-запросы для поиска.
+*   **Apache Kafka** — распределенный лог событий, обеспечивающий гарантированную, отказоустойчивую и асинхронную передачу документов на индексацию.
+*   **Semantic-Worker Service** — изолированный вычислительный движок. Выполняет локальный инференс трансформеров без Python-окружения через **Microsoft ONNX Runtime Java API**. Работает в двух режимах:
+    1. *Асинхронный (Consumer):* Вычитывает документы из Kafka, генерирует 768-мерные эмбеддинги (`all-mpnet-base-v2`) и сохраняет их в БД.
+    2. *Синхронный (gRPC Server):* Принимает поисковый запрос, запрашивает кандидатов из БД по косинусному расстоянию и производит их финальное переранжирование через модель **Cross-Encoder**.
+*   **gRPC** — высокопроизводительный протокол для синхронного Low-Latency взаимодействия между API и Worker при операциях поиска.
+*   **PostgreSQL 15 + pgvector** — база данных с расширением для эффективного хранения векторов и поиска ближайших соседей по косинусному расстоянию (Cosine Distance).
+*   **Kubernetes (K8s)** — оркестрация всей инфраструктуры (Deployment, StatefulSet для БД, PVC, Secrets).
+*   **Prometheus & Grafana** — сквозной мониторинг метрик JVM, потребления CPU/памяти и бизнес-метрик инференса (HTTP queries, Client/Server errors).
 
-### Генерация модели ONNX
+---
 
-Модель `all-mpnet-base-v2` не включена в репозиторий из-за большого размера (~0.5 ГБ). Чтобы сгенерировать её локально:
-Модель `ms-marco-MiniLM-L-6-v2` не включена в репозиторий из-за большого размера (~0.5 ГБ). Чтобы сгенерировать её локально:
+## Схема потоков данных (Data Flow)
 
-1. Убедись, что у тебя есть Python 3.10+ и установлен Miniconda.
-2. Создай и активируй окружение:
+### 1. Асинхронный контур индексации (Запись)
+
+[ Клиент ] ──> (HTTP POST /api/embed) ──> [ semantic-search-api ] ──> (Publish в Kafka) ──> [ Apache Kafka ] ──> (Consume из Kafka) ──> [ semantic-search-worker ] (Inference: all-mpnet-base-v2) ──> [ PostgreSQL (pgvector) ] (Save vector(768))
+
+### 2. Синхронный контур поиска (Чтение с Reranking)
+
+[ Клиент ] ──> (HTTP POST /api/search) ──> [ semantic-search-api ] ──> (gRPC: Search Request) ──> [ semantic-search-worker ] (1. Поиск ТОП-N по Cosine Distance 2. Запуск Cross-Encoder Reranker) ──> [ semantic-search-api ] (Возврат ТОП) ──> [ Клиент ]
+
+---
+
+## Локальное окружение и Тестирование (minikube)
+
+Вся инфраструктура функционирует в локальном кластере **minikube** с драйвером `docker` и прямым пробросом портов.
+
+### Генерация ONNX-моделей
+Модели `all-mpnet-base-v2` и `ms-marco-MiniLM-L-6-v2` не включены в репозиторий из-за большого размера. Чтобы сгенерировать их локально необходимо:
+1. Установить Python 3.10+ и Miniconda.
+2. Создать и активировать окружение:
    ```bash
    conda create -n ml_env python=3.10 -y
    conda activate ml_env
-Установи зависимости:
+   ```
+3. Установить зависимости:
+   ```bash
+   pip install sentence-transformers onnx onnxruntime transformers torch
+   ```
+4. Перейти в папку скриптов:
+   ```bash
+   cd path-to-semantic-search-engine\scripts\conversion
+   ```
+5. Запустить скрипты конвертации:
+   ```bash
+   python convert_all_mpnet_base_v2.py
+   python convert_cross_encoder.py
+   ```
+6. Скопировать полученные файлы *.onnx и *.onnx.data в worker/src/main/resources/models/.
 
+### Быстрый запуск кластера:
+   ```bash
+   minikube start --driver=docker --listen-address=0.0.0.0 --apiserver-ips=<IP сервера> --ports=8443:8443,30080:30080,30300:30300
+   ```
+
+### Порядок применения манифестов:
+Выполните последовательное развертывание из корневой папки проекта:
 ```bash
-pip install sentence-transformers onnx onnxruntime transformers torch
-````
-Перейди в папку скриптов:
-
-```bash
-D:
-cd cd learn\LLM\dev\semantic-search-engine\scripts\conversion
-````
-Запусти скрипт конвертации:
-
-```bash
-python convert_all_mpnet_base_v2.py
-python convert_cross_encoder.py
-```
-Скопируй полученные файлы embedding_model.onnx и embedding_model.onnx.data в worker/src/main/resources/models/.
-
-# Сборка контейнера
-### Собрать API
-docker build -t ubuntu-registry.local/semantic-search-api:latest ./api
-
-### Собрать Worker
-docker build -t ubuntu-registry.local/semantic-search-worker:latest ./worker
-
-docker build -t semantic-search:latest .
-
-# Передача в registry
-docker push ubuntu-registry.local/semantic-search-api:latest
-docker push ubuntu-registry.local/semantic-search-worker:latest
-
-### Запуск контейнера
-docker run -p 8080:8080 --name semantic-search -e SPRING_PROFILES_ACTIVE=docker semantic-search:latest
-docker start semantic-search 
-старт контейнера с привязкой к потоку вывода
-docker start -a semantic-search
-
-### Остановка контейнера
-docker stop semantic-search
-
-посмотреть все контейнеры, включая остановленные (-a)
-docker ps -a
-посмотреть образы
-docker images
-Удалить остановленный контейнер
-docker rm semantic-search
-Удалить образ по имени/тегу:
-docker rmi <имя_образа>
-
-### порядок запуска
-# 1. Базовые ресурсы (от них зависят все поды)
-kubectl apply -f k8s/secrets.yaml             # Секреты (пароли БД)
-kubectl apply -f k8s/prometheus-rbac.yaml     # Права доступа для Prometheus
-
-# 2. База данных и хранилища
-kubectl apply -f k8s/postgres.yaml            # PostgreSQL (StatefulSet + PVC)
-
-# 3. Основные приложения (зависят от БД и секретов)
-kubectl apply -f k8s/semantic-search-api.yaml
+kubectl apply -f k8s/models-pvc.yaml
+!!! при необходимости копируем модели через временный под [описано ниже]*
+kubectl apply -f k8s/secrets.yaml
+kubectl apply -f k8s/prometheus-rbac.yaml
+kubectl apply -f k8s/kafka.yaml
+kubectl apply -f k8s/postgres.yaml
 kubectl apply -f k8s/semantic-search-worker.yaml
-
-# 4. Мониторинг (не зависит от приложений, но полезно поднять после)
-kubectl apply -f k8s/prometheus.yaml          # Prometheus (Deployment + Service)
-kubectl apply -f k8s/grafana.yaml             # Grafana (Deployment + Service)
-
-### Добавление Connections.Data soursces в Grafana
-Connection URL http://prometheus-service:9090
-### Добавление дашборда
-```text
-Запросы для панелей:
-память JVM jvm_memory_used_bytes{application="semantic-search"}
-CPU system_cpu_usage{application="semantic-search"}
-HTTP queries http_server_requests_seconds_count{application="semantic-search"}
-Errors http_server_requests_seconds_count{application="semantic-search", outcome="CLIENT_ERROR"}
+kubectl apply -f k8s/semantic-search-api.yaml
+kubectl apply -f k8s/prometheus.yaml
+kubectl apply -f k8s/grafana-pvc.yaml
+kubectl apply -f k8s/grafana.yaml
 ```
-## !!!!
-🚀 Что можно сделать дальше (по желанию)
-Настроить алерты — чтобы получать уведомления при ошибках или высокой нагрузке.
-Добавить кастомные бизнес-метрики — например, счётчики запросов к /api/embed, время генерации эмбеддинга.
-Подключить Loki для логов — чтобы собирать и анализировать логи вместе с метриками.
-Настроить дашборд под себя — добавить панели с нужными метриками, убрать лишние.
+* копирование моделей
+```bash
+[создаем временный под]
+kubectl apply -f k8s/model-uploader.yaml
+[копируем модели]
+kubectl cp worker/src/main/resources/models/. model-uploader:/mnt/models/
+[проверка, что файлы скопировались]
+kubectl exec -it model-uploader -- ls -la /mnt/models
+[удаление временного пода]
+kubectl delete pod model-uploader
+```
+### Мониторинг:
+После инициализации подов дашборды Grafana доступны: `http://<IP сервера>:30300`. Готовые конфигурации панелей находятся в директории `dashboards/`
