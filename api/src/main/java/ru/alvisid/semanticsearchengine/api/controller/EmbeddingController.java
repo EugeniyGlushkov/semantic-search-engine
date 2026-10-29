@@ -13,11 +13,11 @@ import ru.alvisid.semanticsearch.grpc.EmbedResponse;
 import ru.alvisid.semanticsearch.grpc.SearchRequest;
 import ru.alvisid.semanticsearch.grpc.SearchResponse;
 import ru.alvisid.semanticsearch.grpc.SemanticSearchServiceGrpc;
-import ru.alvisid.semanticsearchengine.api.dto.EmbeddingRequestDto;
 import ru.alvisid.semanticsearchengine.api.dto.EmbeddingResponseDto;
 import ru.alvisid.semanticsearchengine.api.dto.SearchRequestDto;
 import ru.alvisid.semanticsearchengine.api.dto.SearchResponseDto;
 import ru.alvisid.semanticsearchengine.api.producer.EmbeddingProducer;
+import ru.alvisid.semanticsearchengine.dto.EmbeddingRequestDto;
 
 import java.util.HashMap;
 import java.util.List;
