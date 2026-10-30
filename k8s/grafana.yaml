@@ -22,13 +22,33 @@ spec:
           image: grafana/grafana:latest  # Официальный образ Grafana
           ports:
             - containerPort: 3000          # Стандартный порт Grafana
+          volumeMounts:
+            - name: grafana-storage
+              mountPath: /var/lib/grafana
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30      # ждём 30 сек перед первой проверкой
+            periodSeconds: 10            # проверяем каждые 10 сек
+            timeoutSeconds: 3
+            failureThreshold: 30         # даём до 30*10=300 сек на старт
+            successThreshold: 1
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 120     # liveness — позже, чтобы не убить при долгом старте
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 5
           resources: # (Опционально) ограничения ресурсов
             requests:
-              memory: "128Mi"
-              cpu: "50m"
-            limits:
               memory: "256Mi"
-              cpu: "200m"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
           # Можно добавить переменные окружения, например, для смены пароля:
           # env:
           # - name: GF_SECURITY_ADMIN_PASSWORD
@@ -36,9 +56,10 @@ spec:
           # volumeMounts:              # Если нужно сохранять дашборды/настройки
           # - name: grafana-storage
           #   mountPath: /var/lib/grafana
-      # volumes:
-      # - name: grafana-storage
-      #   persistentVolumeClaim: ...
+      volumes:
+        - name: grafana-storage
+          persistentVolumeClaim:
+            claimName: grafana-pvc
 ---
 # ===============================================
 # 2. Service — доступ к Grafana внутри и снаружи кластера

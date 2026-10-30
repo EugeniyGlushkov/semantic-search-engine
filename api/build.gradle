@@ -16,6 +16,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'
     implementation 'org.springframework.boot:spring-boot-starter-kafka'
+    implementation 'io.micrometer:micrometer-registry-prometheus'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
     implementation 'net.devh:grpc-client-spring-boot-starter:3.1.0.RELEASE'
     implementation 'jakarta.annotation:jakarta.annotation-api:2.1.1'
