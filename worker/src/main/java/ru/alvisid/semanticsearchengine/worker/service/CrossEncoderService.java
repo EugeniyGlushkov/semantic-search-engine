@@ -47,13 +47,16 @@ public class CrossEncoderService {
             // Создаем тензоры из токенов
             long[][] inputIdsBatch = {tokens.inputIds()};
             long[][] attentionMaskBatch = {tokens.attentionMask()};
+            long[][] tokenTypeIdsBatch  = {tokens.tokenTypeIds()};
 
             OnnxTensor inputIdsTensor = OnnxTensor.createTensor(environment, inputIdsBatch);
             OnnxTensor attentionMaskTensor = OnnxTensor.createTensor(environment, attentionMaskBatch);
+            OnnxTensor tokenTypeIdsTensor  = OnnxTensor.createTensor(environment, tokenTypeIdsBatch);
 
             Map<String, OnnxTensor> inputs = new HashMap<>();
             inputs.put("input_ids", inputIdsTensor);
             inputs.put("attention_mask", attentionMaskTensor);
+            inputs.put("token_type_ids", tokenTypeIdsTensor);
             float result;
 
             try (OrtSession.Result results = session.run(inputs)) {

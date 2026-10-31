@@ -37,13 +37,14 @@ spring:
 
 ml:
   model:
-    enabled: true
-    tokenizer:
-      path: ${tokenizer-path}
     embedding:
       path: ${embedding-path}
+      tokenizer:
+        path: ${tokenizer-path}
     cross-encoder:
       path: ${cross-encoder-path}
+      tokenizer:
+        path: ${cross-encoder-tokenizer-path}
 
 drift:
   baseline:
@@ -58,6 +59,7 @@ spring:
       on-profile: local
 
 tokenizer-path: classpath:models/tokenizer.json
+cross-encoder-tokenizer-path: classpath:models/cross_encoder_tokenizer.json
 embedding-path: classpath:models/embedding_model.onnx
 cross-encoder-path: classpath:models/cross_encoder_model.onnx
 
@@ -90,6 +92,7 @@ spring:
       on-profile: docker
 
 tokenizer-path: file:/app/models/tokenizer.json
+cross-encoder-tokenizer-path: file:/app/models/cross_encoder_tokenizer.json
 embedding-path: file:/app/models/embedding_model.onnx
 cross-encoder-path: file:/app/models/cross_encoder_model.onnx
 kafka-bootstrap-servers: kafka-service:9092

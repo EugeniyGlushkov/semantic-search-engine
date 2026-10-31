@@ -6,7 +6,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import ru.alvisid.semanticsearchengine.worker.dto.Tokens;
@@ -22,22 +21,34 @@ import java.util.Arrays;
 
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "ml.tokenizer.enabled", havingValue = "true", matchIfMissing = true)
 public class TokenizerService {
 
-    @Value("${ml.model.tokenizer.path}")
-    private Resource resourcePath;
+    @Value("${ml.model.embedding.tokenizer.path}")
+    private Resource embeddingTokenizerResource;
 
-    private HuggingFaceTokenizer tokenizer;
+    @Value("${ml.model.cross-encoder.tokenizer.path}")
+    private Resource crossEncoderTokenizerResource;
+
+    private HuggingFaceTokenizer embeddingTokenizer;
+    private HuggingFaceTokenizer crossEncoderTokenizer;
 
     @PostConstruct
     public void init() {
         try {
-            this.tokenizer = HuggingFaceTokenizer.newInstance(resourcePath.getFilePath());
+            this.embeddingTokenizer = HuggingFaceTokenizer.newInstance(embeddingTokenizerResource.getFilePath());
 
-            System.out.println("Токенизатор успешно инициализирован: " + resourcePath.getFilePath());
+            log.info("Токенизатор эмбеддингов успешно инициализирован: {}", embeddingTokenizerResource.getFilePath());
         } catch (IOException e) {
-            throw new RuntimeException("Не удалось инициализировать HuggingFace токенизатор", e);
+            throw new RuntimeException("Не удалось инициализировать HuggingFace токенизатор эмбеддингов", e);
+        }
+
+
+        try {
+            this.crossEncoderTokenizer = HuggingFaceTokenizer.newInstance(crossEncoderTokenizerResource.getFilePath());
+
+            log.info("Токенизатор кроссэнкодера успешно инициализирован: {}", crossEncoderTokenizerResource.getFilePath());
+        } catch (IOException e) {
+            throw new RuntimeException("Не удалось инициализировать HuggingFace токенизатор кроссэнкодера", e);
         }
     }
 
@@ -50,14 +61,14 @@ public class TokenizerService {
     public Tokens tokenize(String text) {
         // Токенизируем текст без ограничения длины (или с ограничением через параметры)
         log.debug("Токенизация текста: {}", text);
-        Encoding encoding = tokenizer.encode(text);
+        Encoding encoding = embeddingTokenizer.encode(text);
         return getTokens(encoding);
     }
 
     public Tokens tokenizePair(String query, String document) {
         // Токенизируем пару: [CLS] query [SEP] document [SEP]
         log.debug("Токенизация пары: [CLS] {} [SEP] {} [SEP]", query, document);
-        Encoding encoding = tokenizer.encode(query, document);
+        Encoding encoding = crossEncoderTokenizer.encode(query, document);
         return getTokens(encoding);
     }
 
@@ -66,18 +77,24 @@ public class TokenizerService {
         long[] inputIds = encoding.getIds();
         // Получаем маску внимания (1 для реальных токенов, 0 для PAD)
         long[] attentionMask = encoding.getAttentionMask();
+        long[] tokenTypeIds = encoding.getTypeIds();
 
         log.debug("Сгенерировано {} токенов", inputIds.length);
         log.debug("Первые 5 ID: {}", Arrays.toString(Arrays.copyOf(inputIds, Math.min(5, inputIds.length))));
+        log.debug("Первые 5 Type ID: {}", Arrays.toString(Arrays.copyOf(tokenTypeIds, Math.min(5, tokenTypeIds.length))));
 
-        return new Tokens(inputIds, attentionMask);
+        return new Tokens(inputIds, attentionMask, tokenTypeIds);
     }
 
     @PreDestroy
-    public void close() throws Exception {
+    public void close() {
         // Закрываем токенизатор
-        if (tokenizer != null) {
-            tokenizer.close();
+        if (embeddingTokenizer != null) {
+            embeddingTokenizer.close();
+        }
+
+        if (crossEncoderTokenizer != null) {
+            crossEncoderTokenizer.close();
         }
     }
 }

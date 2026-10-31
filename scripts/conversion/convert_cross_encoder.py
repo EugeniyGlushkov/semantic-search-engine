@@ -12,8 +12,8 @@ model.eval()
 print(f"✅ Модель загружена. Тип: {type(model)}")
 
 # 2. Подготавливаем тестовую пару (запрос, документ)
-query = "Как приготовить борщ?"
-document = "Для приготовления борща вам понадобится свекла, капуста, картофель, морковь, лук и томатная паста."
+query = "docker portability"
+document = "Docker packages applications with their dependencies into portable images."
 print(f"📝 Запрос: {query}")
 print(f"📄 Документ: {document}")
 
@@ -27,13 +27,15 @@ print("🔄 Конвертация в ONNX...")
 
 torch.onnx.export(
     model,
-    (inputs['input_ids'], inputs['attention_mask']),
+    (inputs['input_ids'], inputs['attention_mask'], inputs["token_type_ids"]),
     onnx_path,
-    input_names=['input_ids', 'attention_mask'],
+    input_names=['input_ids', 'attention_mask', 'token_type_ids'],
     output_names=['logits'],
     dynamic_axes={
         'input_ids': {0: 'batch_size', 1: 'sequence_length'},
         'attention_mask': {0: 'batch_size', 1: 'sequence_length'},
+        'token_type_ids': {0: 'batch_size', 1: 'sequence_length'},
+        'logits': {0: 'batch_size'},
     },
     opset_version=14,
     do_constant_folding=True
