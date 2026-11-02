@@ -9,9 +9,10 @@ springBoot {     // для генерации файла build-info.properties �
 }
 
 dependencies {
-    implementation platform('org.springframework.boot:spring-boot-dependencies:4.1.0')
+    implementation platform('org.springframework.boot:spring-boot-dependencies:4.1.2')
     implementation libpacks.springBootCommon
     implementation libpacks.embedding
+    implementation libpacks.appsec
     implementation project(':common')
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
