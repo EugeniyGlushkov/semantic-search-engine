@@ -37,17 +37,14 @@ jobs:
             **/build/reports/problems/
           retention-days: 7
 
+  # ============================================================
+  # Job 2: Сборка Docker-образов и push в GitHub Container Registry
+  # ============================================================
   docker-build-and-push:
     needs: build-and-test
-
-    # if push to main only
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
     runs-on: ubuntu-latest
 
-    # permissions — настраиваем права GITHUB_TOKEN для этого Job'а.
-    # packages: write — разрешает пушить образы в ghcr.io.
-    # contents: read — нужно для checkout (по умолчанию).
     permissions:
       contents: read
       packages: write
@@ -66,18 +63,34 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract metadata for API image
+        id: meta-api
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/semantic-search-api
+          tags: |
+            type=sha,format=long,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
       - name: Build and push API image
         uses: docker/build-push-action@v6
         with:
           context: ./api
           file: ./api/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/semantic-search-api:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/semantic-search-api:latest
-          # cache-from/cache-to — кешируем слои между запусками.
+          tags: ${{ steps.meta-api.outputs.tags }}
+          labels: ${{ steps.meta-api.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Extract metadata for Worker image
+        id: meta-worker
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/semantic-search-worker
+          tags: |
+            type=sha,format=long,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Worker image
         uses: docker/build-push-action@v6
@@ -85,8 +98,7 @@ jobs:
           context: ./worker
           file: ./worker/Dockerfile
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/semantic-search-worker:${{ github.sha }}
-            ghcr.io/${{ github.repository_owner }}/semantic-search-worker:latest
+          tags: ${{ steps.meta-worker.outputs.tags }}
+          labels: ${{ steps.meta-worker.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
