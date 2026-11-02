@@ -3,29 +3,25 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
 
 jobs:
   build-and-test:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Setup JDK 21
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-          cache: 'gradle'
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
-
-      - name: Build and test
-        run: ./gradlew clean build
+      - name: Build and Test
+        uses: ./.github/actions/build-and-test
 
       - name: Upload test reports
         if: always()
@@ -38,9 +34,13 @@ jobs:
           retention-days: 7
 
   docker-build-and-push:
-    needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    concurrency:
+      group: docker-publish
+      cancel-in-progress: false
 
     permissions:
       contents: read
@@ -49,6 +49,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - name: Build and Test
+        uses: ./.github/actions/build-and-test
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -60,42 +63,92 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lowercase owner
+        id: owner
+        run: echo "lc=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
       - name: Extract metadata for API image
         id: meta-api
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/semantic-search-api
+          flavor: latest=false
           tags: |
-            type=sha,format=long,prefix=
+            type=sha,format=long,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
 
-      - name: Build and push API image
+      - name: Build API image
         uses: docker/build-push-action@v6
         with:
           context: ./api
           file: ./api/Dockerfile
-          push: true
+          push: false
+          load: true
           tags: ${{ steps.meta-api.outputs.tags }}
           labels: ${{ steps.meta-api.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      - name: Run Trivy vulnerability scanner (api)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: 'ghcr.io/${{ steps.owner.outputs.lc }}/semantic-search-api:sha-${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+          vuln-type: 'os,library'
+
+      - name: Push api image
+        run: |
+          echo "${{ steps.meta-api.outputs.tags }}" | while read -r tag; do
+            if [ -n "$tag" ]; then
+              docker push "$tag"
+            fi
+          done
 
       - name: Extract metadata for Worker image
         id: meta-worker
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository_owner }}/semantic-search-worker
+          flavor: latest=false
           tags: |
-            type=sha,format=long,prefix=
+            type=sha,format=long,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
 
-      - name: Build and push Worker image
+      - name: Build Worker image
         uses: docker/build-push-action@v6
         with:
           context: ./worker
           file: ./worker/Dockerfile
-          push: true
+          push: false
+          load: true
           tags: ${{ steps.meta-worker.outputs.tags }}
           labels: ${{ steps.meta-worker.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,mode=max,scope=worker
+
+      - name: Run Trivy vulnerability scanner (worker)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          image-ref: 'ghcr.io/${{ steps.owner.outputs.lc }}/semantic-search-worker:sha-${{ github.sha }}'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+          vuln-type: 'os,library'
+
+      - name: Push worker image
+        run: |
+          echo "${{ steps.meta-worker.outputs.tags }}" | while read -r tag; do
+            if [ -n "$tag" ]; then
+              docker push "$tag"
+            fi
+          done
