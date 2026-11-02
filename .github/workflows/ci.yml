@@ -37,9 +37,6 @@ jobs:
             **/build/reports/problems/
           retention-days: 7
 
-  # ============================================================
-  # Job 2: Сборка Docker-образов и push в GitHub Container Registry
-  # ============================================================
   docker-build-and-push:
     needs: build-and-test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
