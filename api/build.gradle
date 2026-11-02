@@ -9,9 +9,10 @@ springBoot {     // для генерации файла build-info.properties �
 }
 
 dependencies {
-    implementation platform('org.springframework.boot:spring-boot-dependencies:4.1.0')
-    implementation platform('org.springframework.cloud:spring-cloud-dependencies:2025.1.2')
+    implementation platform('org.springframework.boot:spring-boot-dependencies:4.1.2')
+    implementation platform('org.springframework.cloud:spring-cloud-dependencies:2025.1.4')
     implementation libpacks.springBootCommon
+    implementation libpacks.appsec
     implementation project(':common')
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'org.springframework.cloud:spring-cloud-starter-openfeign'

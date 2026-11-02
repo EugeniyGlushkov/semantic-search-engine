@@ -6,7 +6,7 @@ ext {
             ],
             embedding : [
                     // Tokenizers for Java (порт HuggingFace Tokenizers)
-                    'ai.djl:api:0.28.0',
+                    'ai.djl:api:0.31.1',
                     'ai.djl.huggingface:tokenizers:0.28.0',
                     // чтобы подружить float[] с vector
                     'org.hibernate.orm:hibernate-vector:6.4.0.Final',
@@ -14,6 +14,11 @@ ext {
             ],
             test : [
                     'org.springframework.boot:spring-boot-starter-test',
+            ],
+            appsec : [
+                    'at.yawk.lz4:lz4-java:1.11.4',
+                    'com.google.guava:guava:33.7.2-jre',
+                    'org.xerial.snappy:snappy-java:1.1.10.9'
             ]
     ]
 }
