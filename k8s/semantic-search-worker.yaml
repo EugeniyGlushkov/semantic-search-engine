@@ -21,10 +21,12 @@ spec:
         prometheus.io/path: "/actuator/prometheus"
         prometheus.io/port: "8080"
     spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
       containers:
         - name: app
-          image: ubuntu-registry.local/semantic-search-worker:latest   # Образ из Registry
-          imagePullPolicy: Always    # Всегда тянуть свежий образ (для разработки)
+          image: ghcr.io/eugeniyglushkov/semantic-search-worker:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
             - containerPort: 9090
