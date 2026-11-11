@@ -152,3 +152,57 @@ jobs:
               docker push "$tag"
             fi
           done
+          
+  deploy:
+    needs: docker-build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, minikube]
+    timeout-minutes: 15
+    environment: production
+
+    concurrency:
+      group: deploy-main
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull images into Minikube
+        run: |
+          eval $(minikube docker-env)
+          docker pull ghcr.io/${{ github.repository }}/semantic-search-api:sha-${{ github.sha }}
+          docker pull ghcr.io/${{ github.repository }}/semantic-search-worker:sha-${{ github.sha }}
+          
+      - name: Update deployments
+        run: |
+          kubectl set image deployment/api \
+                      api="ghcr.io/${{ github.repository }}/semantic-search-api:sha-${{ github.sha }}"
+          kubectl set image deployment/worker \
+                      worker="ghcr.io/${{ github.repository }}/semantic-search-worker:sha-${{ github.sha }}"
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/semantic-search-api --timeout=300s
+          kubectl rollout status deployment/semantic-search-worker --timeout=300s
+
+      - name: Smoke test
+        run: |
+          kubectl port-forward svc/semantic-search-api-service 18080:8080 &
+          PF_PID=$!
+          trap "kill $PF_PID 2>/dev/null || true" EXIT
+          sleep 10
+          if curl -sf http://localhost:18080/actuator/health; then
+            echo "✅ API health check passed"
+          else
+            echo "❌ API health check failed"
+            kubectl logs deployment/api --tail=50
+            exit 1
+          fi
