@@ -175,11 +175,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Lowercase owner
+        id: owner
+        run: echo "lc=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
       - name: Pull images into Minikube
         run: |
-          eval $(minikube docker-env)
-          docker pull ghcr.io/${{ github.repository }}/semantic-search-api:sha-${{ github.sha }}
-          docker pull ghcr.io/${{ github.repository }}/semantic-search-worker:sha-${{ github.sha }}
+          eval $(minikube docker-env --shell bash)
+          docker pull ghcr.io/${{ steps.owner.outputs.lc }}/semantic-search-api:sha-${{ github.sha }}
+          docker pull ghcr.io/${{ steps.owner.outputs.lc }}/semantic-search-worker:sha-${{ github.sha }}
           
       - name: Update deployments
         run: |
