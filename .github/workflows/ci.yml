@@ -187,10 +187,10 @@ jobs:
           
       - name: Update deployments
         run: |
-          kubectl set image deployment/api \
-                      api="ghcr.io/${{ github.repository }}/semantic-search-api:sha-${{ github.sha }}"
-          kubectl set image deployment/worker \
-                      worker="ghcr.io/${{ github.repository }}/semantic-search-worker:sha-${{ github.sha }}"
+          kubectl set image deployment/semantic-search-api \
+                      app="ghcr.io/${{ github.repository }}/semantic-search-api:sha-${{ github.sha }}"
+          kubectl set image deployment/semantic-search-worker \
+                      app="ghcr.io/${{ github.repository }}/semantic-search-worker:sha-${{ github.sha }}"
 
       - name: Wait for rollout
         run: |
