@@ -197,16 +197,36 @@ jobs:
           kubectl rollout status deployment/semantic-search-api --timeout=300s
           kubectl rollout status deployment/semantic-search-worker --timeout=300s
 
-      - name: Smoke test
+      - name: Smoke test api
         run: |
-          kubectl port-forward svc/semantic-search-api-service 18080:8080 &
+          kubectl port-forward deployment/semantic-search-api 18080:8080 &
           PF_PID=$!
-          trap "kill $PF_PID 2>/dev/null || true" EXIT
-          sleep 10
-          if curl -sf http://localhost:18080/actuator/health; then
-            echo "✅ API health check passed"
-          else
-            echo "❌ API health check failed"
-            kubectl logs deployment/api --tail=50
-            exit 1
-          fi
+          trap "kill $PF_PID 2>/dev/null || true; sleep 1" EXIT
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:18080/actuator/health > /dev/null; then
+              echo "✅ API health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "Waiting for API... ($i/30)"
+            sleep 3
+          done
+          echo "❌ API health check failed after 90s"
+          kubectl logs deployment/semantic-search-api --tail=100
+          exit 1
+
+      - name: Smoke test worker
+        run: |
+          kubectl port-forward deployment/semantic-search-worker 18080:8080 &
+          PF_PID=$!
+          trap "kill $PF_PID 2>/dev/null || true; sleep 1" EXIT
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:18080/actuator/health > /dev/null; then
+              echo "✅ WORKER health check passed (attempt $i)"
+              exit 0
+            fi
+            echo "Waiting for WORKER... ($i/30)"
+            sleep 3
+          done
+          echo "❌ WORKER health check failed after 90s"
+          kubectl logs deployment/semantic-search-worker --tail=100
+          exit 1
