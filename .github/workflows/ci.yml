@@ -157,7 +157,7 @@ jobs:
     needs: docker-build-and-push
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, minikube]
-    timeout-minutes: 15
+    timeout-minutes: 25
     environment: production
 
     concurrency:
@@ -199,36 +199,42 @@ jobs:
 
       - name: Smoke test api
         run: |
-          kubectl wait --for=condition=ready pod -l app=semantic-search-api --timeout=120s
-          kubectl port-forward deployment/semantic-search-api 18080:8080 &
-          PF_PID=$!
-          trap "kill $PF_PID 2>/dev/null || true; sleep 1" EXIT
+          kubectl wait --for=condition=ready pod -l app=semantic-search-api --timeout=120s || true
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:18080/actuator/health > /dev/null; then
+            kubectl port-forward deployment/semantic-search-api 18080:8080 > /tmp/pf.log 2>&1 &
+            PF_PID=$!
+            sleep 3
+            if curl -sf http://localhost:18080/actuator/health > /dev/null 2>&1; then
               echo "✅ API health check passed (attempt $i)"
+              kill $PF_PID 2>/dev/null || true
               exit 0
             fi
+            kill $PF_PID 2>/dev/null || true
+            wait $PF_PID 2>/dev/null || true
             echo "Waiting for API... ($i/30)"
             sleep 10
           done
-          echo "❌ API health check failed after 300s"
+          echo "❌ API health check failed after ~6.5 min"
           kubectl logs deployment/semantic-search-api --tail=100
           exit 1
 
       - name: Smoke test worker
         run: |
-          kubectl wait --for=condition=ready pod -l app=semantic-search-worker --timeout=120s
-          kubectl port-forward deployment/semantic-search-worker 18080:8080 &
-          PF_PID=$!
-          trap "kill $PF_PID 2>/dev/null || true; sleep 1" EXIT
+          kubectl wait --for=condition=ready pod -l app=semantic-search-worker --timeout=120s || true
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:18080/actuator/health > /dev/null; then
+            kubectl port-forward deployment/semantic-search-worker 18080:8080 > /tmp/pf.log 2>&1 &
+            PF_PID=$!
+            sleep 3
+            if curl -sf http://localhost:18080/actuator/health > /dev/null 2>&1; then
               echo "✅ WORKER health check passed (attempt $i)"
+              kill $PF_PID 2>/dev/null || true
               exit 0
             fi
+            kill $PF_PID 2>/dev/null || true
+            wait $PF_PID 2>/dev/null || true
             echo "Waiting for WORKER... ($i/30)"
             sleep 10
           done
-          echo "❌ WORKER health check failed after 300s"
+          echo "❌ WORKER health check failed after ~6.5 min"
           kubectl logs deployment/semantic-search-worker --tail=100
           exit 1
