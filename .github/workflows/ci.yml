@@ -199,6 +199,7 @@ jobs:
 
       - name: Smoke test api
         run: |
+          kubectl wait --for=condition=ready pod -l app=semantic-search-api --timeout=120s
           kubectl port-forward deployment/semantic-search-api 18080:8080 &
           PF_PID=$!
           trap "kill $PF_PID 2>/dev/null || true; sleep 1" EXIT
@@ -216,6 +217,7 @@ jobs:
 
       - name: Smoke test worker
         run: |
+          kubectl wait --for=condition=ready pod -l app=semantic-search-worker --timeout=120s
           kubectl port-forward deployment/semantic-search-worker 18080:8080 &
           PF_PID=$!
           trap "kill $PF_PID 2>/dev/null || true; sleep 1" EXIT
