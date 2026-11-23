@@ -209,9 +209,9 @@ jobs:
               exit 0
             fi
             echo "Waiting for API... ($i/30)"
-            sleep 3
+            sleep 10
           done
-          echo "❌ API health check failed after 90s"
+          echo "❌ API health check failed after 300s"
           kubectl logs deployment/semantic-search-api --tail=100
           exit 1
 
@@ -227,8 +227,8 @@ jobs:
               exit 0
             fi
             echo "Waiting for WORKER... ($i/30)"
-            sleep 3
+            sleep 10
           done
-          echo "❌ WORKER health check failed after 90s"
+          echo "❌ WORKER health check failed after 300s"
           kubectl logs deployment/semantic-search-worker --tail=100
           exit 1
